@@ -1,0 +1,22 @@
+# Source documents — keep private
+*.pdf
+
+# Generated embedding cache
+embeddings.json
+
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+
+# Environment variables and secrets
+.env
+.env.*
+
+# macOS
+.DS_Store
+
+# Editor settings
+.vscode/
+
