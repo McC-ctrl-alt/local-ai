@@ -230,9 +230,9 @@ for i, chunk in enumerate(chunks): #this doesn't call Ollama's embedding API any
     results.append((score, i, chunk)) #then store the result and repeat
 
 results.sort(reverse=True) #this puts the highest similarity scores first
+top_results = results[:6]
 
-for score, i, chunk in results[:5]: #give me the 5 most similar chunks
-    top_results = results[:5]
+for score, i, chunk in top_results: 
     print(f"\n--- CHUNK {i} | Similarity: {score:.4f} ---")
     print(chunk)
 
@@ -249,13 +249,17 @@ for score, i, chunk in results[:5]: #give me the 5 most similar chunks
 
 #top_results = results[:5]
 
-context = "\n\n".join(
-    chunk for score, i, chunk in top_results
-)
+#context = "\n\n".join(
+#    chunk for score, i, chunk in top_results
+#)
 
-prompt = f"""Answer the question using only the context below.
-If the answer is not in the context, say you don't know.
-Keep your answer under 150 words.
+context = """ \n--- CHUNK 10 | Similarity: 0.5651 ---
+We will show later that the probability of a slower attacker catching up  diminishes exponentially as subsequent blocks are added To compensate for increasing hardware speed and varying interest in running nodes over time,  the proof-of-work difficulty is determined bya moving average targeting an average number of   blocks per hour If they're generated too fast, the difficulty increases 5 Network The steps to run the network are as follows: 1)New transactions are broadcast to all nodes 2) Each node collects new transactions into ablock 3) Each node works on finding a difficult proof-of-work for its block 4) When a node finds a proof-of-work, it broadcasts the block to all nodes 5) Nodes accept the block only if all transactions in it are valid and not already spent 6) Nodes express their acceptance of the block by working on creating the next block in the   chain, using the hash of the accepted block as the previous hash\n
+\n--- CHUNK 15 | Similarity: 0.5112 ---
+Old blocks can then be compacted by stubbing off branches of the tree The interior hashesdo   not need to be stored A block header with no transactions would be about 80 bytes Ifwe suppose blocks are   generated every 10 minutes, 80 bytes * 6 * 24 * 365 = 4.2MB per year With computer systems   typically selling with 2GB of RAM as of 2008, and Moore's Law predicting current growth of   1.2GB per year, storage should not be a problem even if theblock headers must be kept in   memory 4 BlockBlock Block Header (Block Hash) Prev Hash Nonce Hash01 Hash0 Hash1 Hash2 Hash3 Hash23 Root Hash Hash01 Hash2 Tx3 Hash23 Block Header (Block Hash) Root Hash Transactions Hashed in a Merkle Tree After Pruning Tx0-2 from the Block Prev Hash Nonce Hash3 Tx0 Tx1 Tx2 Tx3 8 Simplified Payment Verification It is possible to verify payments without running a full network node\n"""
+
+prompt = f"""Answer in one sentence using only the supplied evidence.
+Do not substitute an explanation of the related process for the answer.
 
 Context:
 {context}
@@ -285,6 +289,8 @@ response = requests.post(
 )
 
 data = response.json()
+
+print(f"\n---Prompt---\n{prompt}")
 
 print("\n--- PERFORMANCE METRICS ---")
 print(f"Total Ollama time: {data.get('total_duration', 0) / 1e9:.2f}s")
