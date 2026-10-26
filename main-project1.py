@@ -253,8 +253,7 @@ context = "\n\n".join(
     chunk for score, i, chunk in top_results
 )
 
-prompt = f"""Answer using only the supplied context.
-Do not substitute an explanation of the related process for the answer.
+prompt = f"""Answer in one sentence using only the supplied evidence.
 
 Context:
 {context}
