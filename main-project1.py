@@ -24,66 +24,64 @@ import hashlib #lets us detect whether the PDF has changed
 import time #lets us measure how long the embedding and Q&A process takes
 
 
-#extract text from a PDF file:
-#make sure the pdf is in the same folder as the script or provide the full path to the PDF file.
-#PDFReader reads the PDF and gives the program access to its pages
-reader = PdfReader("Bitcoin Thesis Paper copy.pdf") 
+# Extract each PDF page separately so every chunk keeps its page provenance.
+PDF_PATH = "Bitcoin Thesis Paper copy.pdf"
+reader = PdfReader(PDF_PATH)
 
-full_text = ""
+with open(PDF_PATH, "rb") as pdf_file:
+    pdf_hash = hashlib.sha256(pdf_file.read()).hexdigest()
 
-for page in reader.pages:
-    full_text += page.extract_text() + "\n" 
 
-#print(repr(full_text[:1000]))
-# ^print the first 1000 characters of the extracted text for verification
+def make_chunk_record(sentences, chunk_index):
+    chunk_text = " ".join(sentence for sentence, _page_number in sentences)
+    page_numbers = sorted({page_number for _sentence, page_number in sentences})
+    content_hash = hashlib.sha256(chunk_text.encode("utf-8")).hexdigest()[:10]
+    return {
+        "chunk_id": f"chunk-{chunk_index:03d}-{content_hash}",
+        "page_numbers": page_numbers,
+        "text": chunk_text,
+    }
 
-#extract_text() converts the page's contents into string
-#.pages: returns a list of Page objects, one for each page in the PDF.
-#"\n" adds a line break after each page's text to separate them.
 
-#clean up the extracted text:
-clean_text = full_text.replace("\n", " ")
+def build_page_aware_chunks(pdf_reader):
+    # Keep sentence/page pairs while chunking, including the sentence overlap.
+    page_sentences = []
+    for page_number, page in enumerate(pdf_reader.pages, start=1):
+        page_text = (page.extract_text() or "").replace("\n", " ")
+        page_sentences.extend(
+            (sentence.strip(), page_number)
+            for sentence in page_text.split(". ")
+            if sentence.strip()
+        )
 
-#split the document into sentences
-sentences = clean_text.split(". ")
+    page_chunks = []
+    current_sentences = []
 
-#create chunks with overlap
-chunks = []
-current_chunk = []
+    for sentence, page_number in page_sentences:
+        current_text = " ".join(item[0] for item in current_sentences)
+        if current_sentences and len(current_text) + 1 + len(sentence) > 1000:
+            page_chunks.append(make_chunk_record(current_sentences, len(page_chunks)))
 
-#the code below does 3 things:
-#creates chunks of text that are less than 1000 characters long
-#adds overlap of 300 characters from the previous chunk to the next chunk
-#makes sure the chunks start with complete sentences and not cut off in the middle of a sentence
-#the specific line that makes sure the chunk starts with complete sentences is: 
-# "overlap.insert(0, previous_sentence)"
+            # Carry whole sentences into the next chunk as overlap.
+            overlap = []
+            overlap_length = 0
+            for previous_sentence in reversed(current_sentences):
+                previous_length = len(previous_sentence[0])
+                if overlap_length + previous_length > 300:
+                    break
+                overlap.insert(0, previous_sentence)
+                overlap_length += previous_length
+            current_sentences = overlap
 
-for sentence in sentences:
-    sentence = sentence.strip()  # remove leading/trailing whitespace
-    if len(" ".join(current_chunk)) + len(sentence) < 1000:  # adjust the chunk size as needed
-        current_chunk.append(sentence)
-    else:
-        #save the completed chunk and start a new one
-        chunks.append(" ".join(current_chunk))
+        current_sentences.append((sentence, page_number))
 
-        #build overlap from complete sentences
-        overlap = []
-        overlap_length = 0
+    if current_sentences:
+        page_chunks.append(make_chunk_record(current_sentences, len(page_chunks)))
 
-        for previous_sentence in reversed(current_chunk):
-            if overlap_length + len(previous_sentence) > 300:
-                break
+    return page_chunks
 
-            overlap.insert(0, previous_sentence)  # add to the beginning of the overlap list
-            overlap_length += len(previous_sentence)
 
-        # start the new chunk with the overlap and the current sentence
-        current_chunk = overlap + [sentence]  
-
-#add the final chunk
-if current_chunk:
-    chunks.append(" ".join(current_chunk))
-
+chunks = build_page_aware_chunks(reader)
 print(f"Number of chunks: {len(chunks)}")
 
 # region Embedding and retrieval notes
@@ -151,26 +149,33 @@ print(f"Number of chunks: {len(chunks)}")
 # endregion
 
 cache_file = "embeddings.json"
+cache_schema_version = 2
+embedding_model = "nomic-embed-text"
 
-# Identify the current PDF contents
-with open("Bitcoin Thesis Paper copy.pdf", "rb") as f: 
-    pdf_hash = hashlib.sha256(f.read()).hexdigest()
-
-# Load the cache if it matches the current PDF
+# Old caches contain plain strings and cannot supply page citations, so require
+# the new schema before reusing cached chunks and embeddings.
 if os.path.exists(cache_file):
-    with open(cache_file, "r") as f:
-        cache = json.load(f)
+    with open(cache_file, "r") as cache_handle:
+        cache = json.load(cache_handle)
 else:
     cache = {}
 
-# the code below checks if the cache exists and if the hash of the current PDF matches the hash stored in the cache. 
-# If they match, it loads the cached chunks and embeddings. 
-# If not, it creates new embeddings for the PDF and saves them to the cache.
-if cache.get("pdf_hash") == pdf_hash:
-    print("Loading cached chunks and embeddings.")
+cache_is_compatible = (
+    cache.get("cache_schema_version") == cache_schema_version
+    and cache.get("pdf_hash") == pdf_hash
+    and cache.get("embedding_model") == embedding_model
+    and len(cache.get("chunks", [])) == len(cache.get("embeddings", []))
+    and all(
+        isinstance(chunk, dict)
+        and {"chunk_id", "page_numbers", "text"} <= chunk.keys()
+        for chunk in cache.get("chunks", [])
+    )
+)
+
+if cache_is_compatible:
+    print("Loading cached page-aware chunks and embeddings.")
     chunks = cache["chunks"]
     chunk_embeddings = cache["embeddings"]
-
 else:
     print("Creating embeddings for the PDF.")
     chunk_embeddings = []
@@ -178,25 +183,24 @@ else:
     for chunk in chunks:
         response = requests.post(
             "http://localhost:11434/api/embed",
-            json={
-                "model": "nomic-embed-text",
-                "input": chunk
-            }
+            json={"model": embedding_model, "input": chunk["text"]},
         )
         response.raise_for_status()
-        chunk_embedding = response.json()["embeddings"][0]
-        chunk_embeddings.append(chunk_embedding)
+        chunk_embeddings.append(response.json()["embeddings"][0])
 
     cache = {
+        "cache_schema_version": cache_schema_version,
         "pdf_hash": pdf_hash,
+        "embedding_model": embedding_model,
         "chunks": chunks,
-        "embeddings": chunk_embeddings
+        "embeddings": chunk_embeddings,
     }
 
-    with open(cache_file, "w") as f:
-        json.dump(cache, f)
+    with open(cache_file, "w") as cache_handle:
+        json.dump(cache, cache_handle)
 
-    print("Embeddings saved to cache.")
+    print("Page-aware embeddings saved to cache.")
+
 
 def cosine_similarity(vector_a, vector_b):
     dot_product = sum(a * b for a, b in zip(vector_a, vector_b))
@@ -232,9 +236,10 @@ for i, chunk in enumerate(chunks): #this doesn't call Ollama's embedding API any
 results.sort(reverse=True) #this puts the highest similarity scores first
 top_results = results[:6]
 
-for score, i, chunk in top_results: 
-    print(f"\n--- CHUNK {i} | Similarity: {score:.4f} ---")
-    print(chunk)
+for score, i, chunk in top_results:
+    pages = ", ".join(map(str, chunk["page_numbers"]))
+    print(f"\n--- {chunk['chunk_id']} | Pages: {pages} | Similarity: {score:.4f} ---")
+    print(chunk["text"])
 
 #the cosine calculation gives us a number between -1 and 1 that tells us how similar the two vectors are.
 
@@ -250,7 +255,8 @@ for score, i, chunk in top_results:
 #top_results = results[:5]
 
 context = "\n\n".join(
-    chunk for score, i, chunk in top_results
+    f"[{chunk['chunk_id']} | PDF pages {', '.join(map(str, chunk['page_numbers']))}]\n{chunk['text']}"
+    for score, i, chunk in top_results
 )
 
 prompt = f"""Answer in one sentence using only the supplied evidence.
