@@ -16,6 +16,7 @@
 # this will allow the LLM to combine information from multiple pages to answer the question.
 
 from pypdf import PdfReader
+from sentence_transformers import CrossEncoder
 import requests
 import math
 import os #checks where the cache file exists
@@ -213,53 +214,100 @@ def cosine_similarity(vector_a, vector_b):
 #the above code packages the mathematical operator into a reusable function (def)
 #so that every time we compared two vectors, we can simply say: cosine_similarity(vector_a, vector_b)
 
+# Keep candidate count and final context size separate so we can compare
+# cosine ordering and reranked ordering fairly.
+CANDIDATE_COUNT = int(os.environ.get("RAG_CANDIDATE_COUNT", "10"))
+FINAL_CONTEXT_COUNT = int(os.environ.get("RAG_FINAL_CONTEXT_COUNT", "6"))
+RERANKER_MODEL = os.environ.get(
+    "RAG_RERANKER_MODEL",
+    "cross-encoder/ms-marco-MiniLM-L-6-v2",
+)
+
 question = input("\nAsk a question about the Bitcoin paper: ")
 
 question_response = requests.post(
     "http://localhost:11434/api/embed",
-    json={
-        "model": "nomic-embed-text",
-        "input": question
-    }
+    json={"model": embedding_model, "input": question},
 )
-
+question_response.raise_for_status()
 question_embedding = question_response.json()["embeddings"][0]
 
-# Compare the question against the stored chunk embeddings
-results = [] #this creates an empty list where we will store (score, chunk number, chunk text)
-
-for i, chunk in enumerate(chunks): #this doesn't call Ollama's embedding API anymore - it will just reuse the vectors already created.
+# Stage 1: cosine similarity quickly selects a small candidate set.
+retrieval_start = time.perf_counter()
+results = []
+for i, chunk in enumerate(chunks):
     score = cosine_similarity(question_embedding, chunk_embeddings[i])
+    results.append((score, i, chunk))
 
-    results.append((score, i, chunk)) #then store the result and repeat
+results.sort(key=lambda result: result[0], reverse=True)
+retrieval_seconds = time.perf_counter() - retrieval_start
+candidates = results[:CANDIDATE_COUNT]
 
-results.sort(reverse=True) #this puts the highest similarity scores first
-top_results = results[:6]
+# Stage 2: the cross-encoder reads each question/chunk pair jointly and
+# produces a relevance score used to reorder only the cosine candidates.
+try:
+    reranker = CrossEncoder(
+        RERANKER_MODEL,
+        device="cpu",
+        local_files_only=True,
+    )
+except Exception as exc:
+    raise RuntimeError(
+        f"Reranker model '{RERANKER_MODEL}' is not available locally. "
+        "Download it before running offline; see the setup notes."
+    ) from exc
 
-for score, i, chunk in top_results:
-    pages = ", ".join(map(str, chunk["page_numbers"]))
-    print(f"\n--- {chunk['chunk_id']} | Pages: {pages} | Similarity: {score:.4f} ---")
-    print(chunk["text"])
+pairs = [(question, chunk["text"]) for _cosine, _i, chunk in candidates]
+rerank_start = time.perf_counter()
+reranker_scores = reranker.predict(pairs, batch_size=8)
+rerank_seconds = time.perf_counter() - rerank_start
 
-#the cosine calculation gives us a number between -1 and 1 that tells us how similar the two vectors are.
-
-#cosine similarity asks: are these two vectors pointing in the same direction?
-
-#a score close to 1 means high similarity; close to 0 means low similiarity
-
-#RAG generation:
-#Retrieval found the most relevant chunks
-#We now give those chunks + the question to the LLM
-#The LLM does not search the document; it uses the retrieval context to answer
-
-#top_results = results[:5]
-
-context = "\n\n".join(
-    f"[{chunk['chunk_id']} | PDF pages {', '.join(map(str, chunk['page_numbers']))}]\n{chunk['text']}"
-    for score, i, chunk in top_results
+reranked_results = sorted(
+    [
+        (float(reranker_score), cosine_score, chunk_index, chunk)
+        for reranker_score, (cosine_score, chunk_index, chunk)
+        in zip(reranker_scores, candidates)
+    ],
+    key=lambda result: result[0],
+    reverse=True,
 )
 
-prompt = f"""Answer in one sentence using only the supplied evidence.
+
+def show_ranking(title, ranked_chunks, use_reranker_score=False):
+    print(f"\n--- {title} ---")
+    for rank, result in enumerate(ranked_chunks, start=1):
+        if use_reranker_score:
+            reranker_score, cosine_score, _index, chunk = result
+            score_text = (
+                f"Reranker: {reranker_score:.4f} | Cosine: {cosine_score:.4f}"
+            )
+        else:
+            cosine_score, _index, chunk = result
+            score_text = f"Cosine: {cosine_score:.4f}"
+        pages = ", ".join(map(str, chunk["page_numbers"]))
+        print(
+            f"{rank}. {chunk['chunk_id']} | Pages: {pages} | {score_text}"
+        )
+
+
+def context_from(ranked_chunks, reranked=False):
+    selected = ranked_chunks[:FINAL_CONTEXT_COUNT]
+    if reranked:
+        selected_chunks = [result[3] for result in selected]
+    else:
+        selected_chunks = [result[2] for result in selected]
+    context = "\n\n".join(
+        f"[{chunk['chunk_id']} | PDF pages {', '.join(map(str, chunk['page_numbers']))}]\n"
+        f"{chunk['text']}"
+        for chunk in selected_chunks
+    )
+    return selected_chunks, context
+
+
+def generate_answer(context, label):
+    prompt = f"""Answer in one sentence using only the supplied evidence.
+If the evidence is insufficient, say "I don't know."
+Cite the supporting chunk ID and PDF page number.
 
 Context:
 {context}
@@ -267,43 +315,65 @@ Context:
 Question:
 {question}
 """
+    started_at = time.perf_counter()
+    response = requests.post(
+        "http://localhost:11434/api/chat",
+        json={
+            "model": "qwen2.5:3b",
+            "messages": [
+                {
+                    "role": "system",
+                    "content": (
+                        "Use only the supplied context. Do not invent information. "
+                        "Include a citation to the exact supporting chunk and page."
+                    ),
+                },
+                {"role": "user", "content": prompt},
+            ],
+            "stream": False,
+        },
+    )
+    response.raise_for_status()
+    data = response.json()
+    answer = data["message"]["content"]
+    elapsed_seconds = time.perf_counter() - started_at
 
-start_time = time.perf_counter()
+    print(f"\n--- {label} answer ---")
+    print(answer)
+    print(
+        f"Time: {elapsed_seconds:.2f}s "
+        f"(Ollama reported {data.get('total_duration', 0) / 1e9:.2f}s)"
+    )
+    return answer, data, elapsed_seconds
 
-response = requests.post(
-    "http://localhost:11434/api/chat",
-    json={
-        "model": "qwen2.5:3b",
-        "messages": [
-            {
-                "role": "system",
-                "content": "Answer using only the provided context. Do not invent information."
-            },
-            {
-                "role": "user",
-                "content": prompt
-            }
-        ],
-        "stream": False
-    }
+
+show_ranking("Cosine candidates", candidates)
+show_ranking("Reranked candidates", reranked_results, use_reranker_score=True)
+
+baseline_chunks, baseline_context = context_from(candidates)
+reranked_chunks, reranked_context = context_from(
+    reranked_results, reranked=True
 )
 
-data = response.json()
+baseline_answer, baseline_data, baseline_generation_seconds = generate_answer(
+    baseline_context, "Cosine-only"
+)
+reranked_answer, reranked_data, reranked_generation_seconds = generate_answer(
+    reranked_context, "Cross-encoder reranked"
+)
 
-print(f"\n---Prompt---\n{prompt}")
-
-print("\n--- PERFORMANCE METRICS ---")
-print(f"Total Ollama time: {data.get('total_duration', 0) / 1e9:.2f}s")
-print(f"Model loading: {data.get('load_duration', 0) / 1e9:.2f}s")
-print(f"Prompt processing: {data.get('prompt_eval_duration', 0) / 1e9:.2f}s")
-print(f"Answer generation: {data.get('eval_duration', 0) / 1e9:.2f}s")
-print(f"Output tokens: {data.get('eval_count', 0)}")
-
-generation_time = (time.perf_counter()) - (start_time) 
-
-answer = response.json()["message"]["content"]
-
-print("\n--- ANSWER ---")
-print(answer)
-print(f"\nGeneration time: {generation_time: .2f} seconds")
-#what this adds: PDF -> chunks -> embeddings -> similarity search -> top 5 chunks -> Qwen3 -> answer
+print("\n--- Stage timings ---")
+print(f"Cosine retrieval: {retrieval_seconds:.4f}s")
+print(f"Cross-encoder reranking: {rerank_seconds:.4f}s")
+print(
+    "Baseline generation: "
+    f"{baseline_generation_seconds:.2f}s "
+    f"(prompt {baseline_data.get('prompt_eval_duration', 0) / 1e9:.2f}s; "
+    f"generation {baseline_data.get('eval_duration', 0) / 1e9:.2f}s)"
+)
+print(
+    "Reranked generation: "
+    f"{reranked_generation_seconds:.2f}s "
+    f"(prompt {reranked_data.get('prompt_eval_duration', 0) / 1e9:.2f}s; "
+    f"generation {reranked_data.get('eval_duration', 0) / 1e9:.2f}s)"
+)
