@@ -229,7 +229,7 @@ CANDIDATE_COUNT = int(os.environ.get("RAG_CANDIDATE_COUNT", "10"))
 FINAL_CONTEXT_COUNT = int(os.environ.get("RAG_FINAL_CONTEXT_COUNT", "6"))
 RERANKER_MODEL = os.environ.get(
     "RAG_RERANKER_MODEL",
-    "cross-encoder/ms-marco-MiniLM-L-6-v2",
+    "cross-encoder/ms-marco-MiniLM-L6-v2",
 )
 EVALUATION_CASES_FILE = "evaluation_cases.jsonl"
 
