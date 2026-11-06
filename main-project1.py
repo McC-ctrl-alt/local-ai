@@ -13,7 +13,8 @@
 #Chunking:
 #When I ask the question on double spending, instead of looking for the answer on one page, the LLM will use
 # chunking to break the text into smaller pieces and search for the meaning across all pages. 
-# this will allow the LLM to combine information from multiple pages to answer the question.
+# this will allow the LLM to combine in
+# formation from multiple pages to answer the question.
 
 from pypdf import PdfReader
 from sentence_transformers import CrossEncoder
@@ -93,70 +94,6 @@ def build_page_aware_chunks(pdf_reader):
 
 chunks = build_page_aware_chunks(reader)
 print(f"Number of chunks: {len(chunks)}")
-
-# region Embedding and retrieval notes
-#this converts the chunks into data that we can use for embeddings. This now shows us how many chunks and how many characters per chunk.
-#it still remains as strings of text but we can now use these chunks to create embeddings and store them in a vector database for retrieval.
-
-#the problem with the first basic chunk method (where we had no overlap or designated chunk size is that it can lead to issues when trying to retrieve information from the chunks).
-#1. Chunks are inconsistent in size, some are too long, some are too short.
-#2. we're breaking context - we have seperated sentences that may be related to each other, but are now in different chunks.
-#3. sentence boundaries aren't enough. Real documents aren't just collections of independent sentences. 
-#meaning often depends on surrounding sentences, headings, paragraphs, tables, lists, and sections
-
-#What the code does up to the chunking stage:
-#1. It reads the PDF file and extracts the text from it.
-#2. It cleans the text by removing line breaks and splitting it into chunks based on periods    
-#3. It prints out each chunk with its corresponding number for verification.
-#4. The chunks can then be used for further processing, such as indexing or searching for answers to questions.
-
-#now on to embedding:
-#embedding's role is to represent the meaning of text numerically so we can compare questions to their answers in the chunks
-#we will use "nomic-embed-text" through Ollama. It's a dedicated embedding model and is better than a general chat model
-
-#Process:
-#Embedding: Represent this text numerically
-#Similarity: Which numerical representations are closest to this question?
-#LLM: Given the question + retrieved chunks, formulate an answer
-
-#I am not asking the LLM to "search the PDF"
-#I am setting up a retriveal system to find relevant chunks of text that can help answer the question. 
-#The LLM will then use those chunks to generate an answer.
-
-#The below is a demo of how we embed one chunk:
-
-#text = chunk[0]  # just using the first chunk for demonstration
-
-#response = requests.post(
-#    "http://localhost:11434/api/embed",
-#    json={
-#        "model": "nomic-embed-text",
-#        "input": text
-#    }
-#) 
-
-#this chunk of text is sent to the embedding model to get its numerical representation
-# Python -> HTTP request -> Ollama -> nomic-embed text -> vector -> Python
-#JSON is a data format that allows us to send and receive data between the client (Python) and the server (Ollama).
-
-#embedding = response.json()["embeddings"][0] #pulls the numerical vector out of Ollama's response and stores it in the variable "embedding"
-
-#print(f"Embedding length: {len(embedding)}")
-#print(embedding[:10]) # print the first 10 dimensions of the embedding for verification
-
-#the important part of this is that I can see the relationship between vectors and the text they represent.
-#This is the key to retrieval-augmented generation. 
-#The LLM can use these embeddings to find relevant chunks of text that can help answer a question.
-
-#the 768 would mean that this particular model represents the text using 768 numerical dimensions
-#a numerical dimension is a single number in the vector that represents some aspect of the meaning of the text.
-
-#Right now we only have 1 vector for 1 chunk of text (that is why it is 768 dimensions).
-
-#the next concept is similarity search 
-
-#let's bring in another vector for comparison. We will run a question and calculate its similarity
-# endregion
 
 cache_file = "embeddings.json"
 cache_schema_version = 3
@@ -299,74 +236,126 @@ def validate_citations(answer, citations, selected_chunks):
     return not problems, problems
 
 
-def generate_answer(context, selected_chunks, label):
-    prompt = f"""Answer in one sentence using only the supplied evidence.
-If the evidence is insufficient, answer "I don't know." and return no citations.
-
-Return one valid JSON object with:
-- "answer": your one-sentence answer
-- "citations": a list of objects with "chunk_id", integer "page_number",
-  and "quote" copied exactly from that page's supplied text
-
-Cite only chunks in the context. Do not invent page numbers or quotes.
-
-Context:
-{context}
-
+def generate_answer(evidence_by_id, selected_chunks, label):
+    context = "\n\n".join(
+        f"[{evidence_id}] {source['quote']}"
+        for evidence_id, source in evidence_by_id.items()
+    )
+ 
+    prompt = f"""Answer the question in one sentence using only the numbered excerpts.
+Choose the evidence before writing your answer. Return only the evidence IDs
+needed to support it. If the evidence is partial, qualify the answer.
+If the excerpts provide no useful evidence, answer "I don't know." with no IDs.
+ 
 Question:
 {question}
+ 
+Evidence:
+{context}
+
 """
+    answered_format = {
+        "type": "object",
+        "properties": {
+            "evidence_ids": {
+                "type": "array",
+                "minItems": 1,
+                "items": {"type": "string", "enum": list(evidence_by_id)},
+            },
+            "answer": {"type": "string", "minLength": 1},
+        },
+        "required": ["evidence_ids", "answer"],
+    }
+
+    abstention_format = {
+        "type": "object",
+        "properties": {
+            "evidence_ids": {"type": "array", "maxItems": 0},
+            "answer": {"const": "I don't know."},
+        },
+        "required": ["evidence_ids", "answer"],
+    }
+
+    response_format = (
+        {"anyOf": [answered_format, abstention_format]}
+        if evidence_by_id
+        else abstention_format
+    )
+
     started_at = time.perf_counter()
+
     response = requests.post(
         "http://localhost:11434/api/chat",
         json={
             "model": "qwen2.5:3b",
-            "format": "json",
+            "format": response_format,
             "messages": [
                 {
                     "role": "system",
-                    "content": (
-                        "Use only supplied evidence. Do not invent facts, pages, "
-                        "chunk IDs, or quotations. Abstain if evidence is insufficient."
-                    ),
+                    "content": "Use only the supplied evidence.",
                 },
                 {"role": "user", "content": prompt},
             ],
             "stream": False,
         },
     )
+
     response.raise_for_status()
     data = response.json()
-    raw_answer = data["message"]["content"]
     generation_seconds = time.perf_counter() - started_at
-
+ 
     try:
-        parsed = json.loads(raw_answer)
+        parsed = json.loads(data["message"]["content"])
+
     except json.JSONDecodeError:
-        parsed = {"answer": raw_answer, "citations": []}
+        parsed = {}
 
-    answer = str(parsed.get("answer", "")).strip()
-    citations = parsed.get("citations", [])
-    citations_valid, citation_problems = validate_citations(
-        answer, citations, selected_chunks
+    if not isinstance(parsed, dict):
+        parsed = {}
+
+    answer = parsed.get("answer", "")
+    evidence_ids = parsed.get("evidence_ids")
+    citations = []
+
+    if not isinstance(answer, str) or not answer.strip():
+        citations_valid = False
+        citation_problems = ["Qwen did not return an answer."]
+    elif not isinstance(evidence_ids, list) or any(
+        not isinstance(evidence_id, str) or evidence_id not in evidence_by_id
+        for evidence_id in evidence_ids
+    ):
+        citations_valid = False
+        citation_problems = ["Qwen returned invalid evidence IDs."]
+    else:
+        answer = answer.strip()
+        citations = [
+            evidence_by_id[evidence_id]
+            for evidence_id in dict.fromkeys(evidence_ids)
+        ]
+        citations_valid, citation_problems = validate_citations(
+            answer, citations, selected_chunks
+        )
+ 
+    delivered_answer = (
+        answer if citations_valid else "I don't know. (Citation validation failed.)"
     )
-    delivered_answer = answer
-    if not citations_valid:
-        delivered_answer = "I don't know. (Citation validation failed.)"
-
+ 
     print(f"\n--- {label} ---")
     print(f"Answer: {delivered_answer}")
-    if citations:
-        for citation in citations:
-            print(
-                f"Citation: p. {citation.get('page_number')} | "
-                f"{citation.get('chunk_id')} | "
-                f"“{citation.get('quote', '')}”"
-            )
+
+    for citation in citations:
+        print(
+            f"Citation: p. {citation['page_number']} | {citation['chunk_id']} | "
+            f"“{citation['quote']}”"
+        )
+
     print(f"Citation validation: {'PASS' if citations_valid else 'FAIL'}")
+
     for problem in citation_problems:
         print(f"Citation issue: {problem}")
+
     print(f"Generation time: {generation_seconds:.2f}s")
+ 
     return {
         "model_answer": answer,
         "delivered_answer": delivered_answer,
@@ -376,7 +365,6 @@ Question:
         "ollama": data,
         "generation_seconds": generation_seconds,
     }
-
 
 question = input("\nAsk a question about the Bitcoin paper: ")
 
@@ -402,9 +390,10 @@ candidates = results[:CANDIDATE_COUNT]
 reranker_load_start = time.perf_counter()
 try:
     reranker = CrossEncoder(
-        RERANKER_MODEL,
+        "cross-encoder/ms-marco-MiniLM-L6-v2",
+        backend="onnx",
         device="cpu",
-        local_files_only=True,
+        local_files_only=False,
     )
 except Exception as exc:
     raise RuntimeError(
@@ -414,6 +403,12 @@ except Exception as exc:
 reranker_load_seconds = time.perf_counter() - reranker_load_start
 
 pairs = [(question, chunk["text"]) for _cosine, _i, chunk in candidates]
+probe_pairs = [
+    ("What is the capital of France?", "Paris is the capital of France."),
+    ("What is the capital of France?", "The moon orbits Earth."),
+]
+print("Reranker model:", RERANKER_MODEL)
+print("Test scores:", reranker.predict(probe_pairs, batch_size=2))
 rerank_start = time.perf_counter()
 reranker_scores = reranker.predict(pairs, batch_size=8)
 rerank_seconds = time.perf_counter() - rerank_start
@@ -445,20 +440,23 @@ def show_ranking(title, ranked_chunks, reranked=False):
 
 
 def select_context(ranked_chunks, reranked=False):
-    selected = ranked_chunks[:FINAL_CONTEXT_COUNT]
     selected_chunks = [
         result[3] if reranked else result[2]
-        for result in selected
+        for result in ranked_chunks[:FINAL_CONTEXT_COUNT]
     ]
-    context = "\n\n".join(
-        f"[chunk_id={chunk['chunk_id']}]\n"
-        + "\n".join(
-            f"[page={segment['page_number']}] {segment['text']}"
-            for segment in chunk["page_segments"]
-        )
-        for chunk in selected_chunks
-    )
-    return selected_chunks, context
+ 
+    evidence_by_id = {}
+    for chunk in selected_chunks:
+        for segment in chunk["page_segments"]:
+            if segment["text"].strip():
+                evidence_id = f"E{len(evidence_by_id) + 1}"
+                evidence_by_id[evidence_id] = {
+                    "chunk_id": chunk["chunk_id"],
+                    "page_number": segment["page_number"],
+                    "quote": segment["text"],
+                }
+ 
+    return selected_chunks, evidence_by_id
 
 
 show_ranking("Cosine candidates", candidates)
@@ -488,6 +486,8 @@ baseline_chunks, baseline_context = select_context(candidates)
 reranked_chunks, reranked_context = select_context(
     reranked_results, reranked=True
 )
+
+print(f"\n--- Exact context sent to Qwen ---\n{reranked_context}")
 
 baseline_result = generate_answer(
     baseline_context, baseline_chunks, "Cosine-only answer"
