@@ -1,0 +1,76 @@
+%PDF-1.4
+1 0 obj
+<< /Type /Catalog /Pages 2 0 R >>
+endobj
+2 0 obj
+<< /Type /Pages /Kids [4 0 R 6 0 R] /Count 2 >>
+endobj
+3 0 obj
+<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>
+endobj
+4 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Contents 5 0 R /Resources << /Font << /F1 3 0 R >> >> >>
+endobj
+5 0 obj
+<< /Length 571 >>
+stream
+BT
+/F1 11 Tf
+54 740 Td
+14 TL
+(SYNTHETIC DEMO DOCUMENT.) Tj
+T*
+(This file is fictional and was written for a software demonstration.) Tj
+T*
+(It is not legal advice, and it does not describe a real client or a real firm.) Tj
+T*
+(Northwind Advisory LLC confidentiality policy NW-POL-04 is effective January 1, 2026.) Tj
+T*
+(This policy applies to every staff member and contractor of the fictional firm.) Tj
+T*
+(Staff must not discuss client matters in elevators, rideshares, or other public places.) Tj
+T*
+(Client files may not be stored on a personal cloud account.) Tj
+ET
+endstream
+endobj
+6 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Contents 7 0 R /Resources << /Font << /F1 3 0 R >> >> >>
+endobj
+7 0 obj
+<< /Length 465 >>
+stream
+BT
+/F1 11 Tf
+54 740 Td
+14 TL
+(Breach reporting for Northwind Advisory LLC is stated on this page.) Tj
+T*
+(A suspected confidentiality breach must be reported to the Managing Principal within one) Tj
+T*
+(business day.) Tj
+T*
+(The report may be made by email or by phone.) Tj
+T*
+(The Managing Principal records the report in the incident log.) Tj
+T*
+(The duty of confidentiality lasts through the engagement and for two years after the) Tj
+T*
+(engagement ends.) Tj
+ET
+endstream
+endobj
+xref
+0 8
+0000000000 65535 f 
+0000000009 00000 n 
+0000000058 00000 n 
+0000000121 00000 n 
+0000000191 00000 n 
+0000000317 00000 n 
+0000000939 00000 n 
+0000001065 00000 n 
+trailer << /Size 8 /Root 1 0 R >>
+startxref
+1581
+%%EOF

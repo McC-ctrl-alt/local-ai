@@ -1,3 +1,4 @@
 pypdf
 requests
 sentence-transformers
+streamlit

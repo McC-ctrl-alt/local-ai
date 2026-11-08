@@ -1,0 +1,104 @@
+%PDF-1.4
+1 0 obj
+<< /Type /Catalog /Pages 2 0 R >>
+endobj
+2 0 obj
+<< /Type /Pages /Kids [4 0 R 6 0 R 8 0 R] /Count 3 >>
+endobj
+3 0 obj
+<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>
+endobj
+4 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Contents 5 0 R /Resources << /Font << /F1 3 0 R >> >> >>
+endobj
+5 0 obj
+<< /Length 681 >>
+stream
+BT
+/F1 11 Tf
+54 740 Td
+14 TL
+(SYNTHETIC DEMO DOCUMENT.) Tj
+T*
+(This file is fictional and was written for a software demonstration.) Tj
+T*
+(It is not legal advice, and it does not describe a real client or a real firm.) Tj
+T*
+(Northwind Advisory LLC is a fictional professional-services firm.) Tj
+T*
+(This engagement letter is between Northwind Advisory LLC and Harborline Markets, Inc.,) Tj
+T*
+(which is also fictional.) Tj
+T*
+(The letter is dated March 3, 2026.) Tj
+T*
+(Harborline Markets, Inc. asks Northwind Advisory LLC to review its monthly close) Tj
+T*
+(procedures for the fictional fiscal year 2026.) Tj
+T*
+(The engagement partner named in this letter is Priya Shah.) Tj
+ET
+endstream
+endobj
+6 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Contents 7 0 R /Resources << /Font << /F1 3 0 R >> >> >>
+endobj
+7 0 obj
+<< /Length 424 >>
+stream
+BT
+/F1 11 Tf
+54 740 Td
+14 TL
+(Fees for the Harborline Markets engagement are stated on this page.) Tj
+T*
+(The fixed professional fee for this engagement is $18,500.) Tj
+T*
+(Harborline Markets, Inc. will pay $9,250 when this letter is signed.) Tj
+T*
+(Harborline Markets, Inc. will pay the remaining $9,250 when the final memo is delivered.) Tj
+T*
+(Northwind Advisory LLC will not bill a success fee on this engagement.) Tj
+ET
+endstream
+endobj
+8 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Contents 9 0 R /Resources << /Font << /F1 3 0 R >> >> >>
+endobj
+9 0 obj
+<< /Length 429 >>
+stream
+BT
+/F1 11 Tf
+54 740 Td
+14 TL
+(The Harborline Markets engagement lasts 90 days from March 3, 2026.) Tj
+T*
+(The engagement end date in this letter is June 1, 2026.) Tj
+T*
+(This letter does not authorize Northwind Advisory LLC to prepare a tax return for) Tj
+T*
+(Harborline Markets, Inc.) Tj
+T*
+(Priya Shah will supervise the work and sign the final memo.) Tj
+T*
+(Either party may end the engagement by giving written notice.) Tj
+ET
+endstream
+endobj
+xref
+0 10
+0000000000 65535 f 
+0000000009 00000 n 
+0000000058 00000 n 
+0000000127 00000 n 
+0000000197 00000 n 
+0000000323 00000 n 
+0000001055 00000 n 
+0000001181 00000 n 
+0000001656 00000 n 
+0000001782 00000 n 
+trailer << /Size 10 /Root 1 0 R >>
+startxref
+2262
+%%EOF

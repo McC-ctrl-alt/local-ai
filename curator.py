@@ -1,44 +1,120 @@
-#Project Curator
+# Project Curator
+"""Answer one question from every PDF in a folder, using local Qwen.
 
-from pypdf import PdfReader
-from sentence_transformers import CrossEncoder
-import requests
+Embeddings and the written answer stay on this computer through Ollama.
+A citation is delivered only when its quote is present on the named file
+and page. If the files do not support an answer, the result is "I don't know."
+"""
+
+import argparse
+import hashlib
+import json
 import math
-import os #checks where the cache file exists
-import json #saves and loads the cache
-import hashlib #lets us detect whether the PDF has changed
-import time #lets us measure how long the embedding and Q&A process takes
+import os
+import re
+import sys
+import time
+from pathlib import Path
+
+import requests
+from pypdf import PdfReader
 
 
-# Extract each PDF page separately so every chunk keeps its page provenance.
-PDF_PATH = "Bitcoin Thesis Paper copy.pdf"
-reader = PdfReader(PDF_PATH)
+DEFAULT_DOCS_DIR = "sample_documents"
+EMBEDDING_MODEL = "nomic-embed-text"
+GENERATION_MODEL = "qwen2.5:3b"
+CACHE_SCHEMA_VERSION = 5
+CANDIDATE_COUNT = int(os.environ.get("RAG_CANDIDATE_COUNT", "10"))
+FINAL_CONTEXT_COUNT = int(os.environ.get("RAG_FINAL_CONTEXT_COUNT", "6"))
+RERANKER_MODEL = os.environ.get(
+    "RAG_RERANKER_MODEL",
+    "cross-encoder/ms-marco-MiniLM-L6-v2",
+)
+CHUNK_CHARACTER_LIMIT = 1000
+CHUNK_OVERLAP_LIMIT = 300
 
-with open(PDF_PATH, "rb") as pdf_file:
-    pdf_hash = hashlib.sha256(pdf_file.read()).hexdigest()
+
+class LocalModelError(RuntimeError):
+    """Ollama is not running, or a required local model is missing."""
 
 
-def make_chunk_record(sentences, chunk_index):
-    chunk_text = " ".join(sentence for sentence, _page_number in sentences)
+class DocumentIndex:
+    def __init__(self, folder, files, chunks, embeddings, reranker):
+        self.folder = str(folder)
+        self.files = list(files)
+        self.chunks = chunks
+        self.embeddings = embeddings
+        self.reranker = reranker
+
+
+def ollama_base_url():
+    raw = os.environ.get("OLLAMA_HOST", "http://127.0.0.1:11434").rstrip("/")
+    if not raw.startswith("http://") and not raw.startswith("https://"):
+        raw = "http://" + raw
+    return raw
+
+
+def ollama_post(endpoint, payload, timeout):
+    url = f"{ollama_base_url()}/api/{endpoint}"
+    try:
+        response = requests.post(url, json=payload, timeout=timeout)
+    except requests.ConnectionError as exc:
+        raise LocalModelError(
+            "Ollama is not running at "
+            f"{ollama_base_url()}. Start the Ollama app, then install the "
+            f"local models with: ollama pull {EMBEDDING_MODEL} && "
+            f"ollama pull {GENERATION_MODEL}"
+        ) from exc
+    except requests.Timeout as exc:
+        raise LocalModelError(
+            f"Ollama did not finish the {endpoint} request within {timeout} seconds."
+        ) from exc
+
+    if response.status_code >= 400:
+        detail = response.text.strip().replace("\n", " ")[:500]
+        hint = ""
+        if response.status_code == 404 or "not found" in detail.lower():
+            model_name = payload.get("model", GENERATION_MODEL)
+            hint = f" If the model is missing, run: ollama pull {model_name}"
+        raise LocalModelError(
+            f"Ollama returned an error ({response.status_code}). {detail}.{hint}"
+        )
+    return response.json()
+
+
+def normalize_text(text):
+    return " ".join(str(text).casefold().split())
+
+
+def make_chunk_record(sentences, chunk_index, filename):
+    # Splitting on ". " removes the period. Putting it back keeps the cited
+    # passage readable and aligned with the PDF, including "Inc."
+    chunk_text = ". ".join(sentence for sentence, _page_number in sentences)
     page_sentences = {}
     for sentence, page_number in sentences:
         page_sentences.setdefault(page_number, []).append(sentence)
     page_segments = [
         {
             "page_number": page_number,
-            "text": " ".join(page_sentences[page_number]),
+            "text": ". ".join(page_sentences[page_number]),
         }
         for page_number in sorted(page_sentences)
     ]
     content_hash = hashlib.sha256(chunk_text.encode("utf-8")).hexdigest()[:10]
+    slug = "".join(
+        character if character.isalnum() else "-"
+        for character in Path(filename).stem.lower()
+    ).strip("-")
     return {
-        "chunk_id": f"chunk-{chunk_index:03d}-{content_hash}",
+        "chunk_id": f"{slug}-chunk-{chunk_index:03d}-{content_hash}",
+        "filename": filename,
         "page_numbers": [segment["page_number"] for segment in page_segments],
         "page_segments": page_segments,
         "text": chunk_text,
     }
 
-def build_page_aware_chunks(pdf_reader):
+
+def build_page_aware_chunks(pdf_reader, filename):
     # Keep sentence/page pairs while chunking, including the sentence overlap.
     page_sentences = []
     for page_number, page in enumerate(pdf_reader.pages, start=1):
@@ -54,15 +130,17 @@ def build_page_aware_chunks(pdf_reader):
 
     for sentence, page_number in page_sentences:
         current_text = " ".join(item[0] for item in current_sentences)
-        if current_sentences and len(current_text) + 1 + len(sentence) > 1000:
-            page_chunks.append(make_chunk_record(current_sentences, len(page_chunks)))
+        if current_sentences and len(current_text) + 1 + len(sentence) > CHUNK_CHARACTER_LIMIT:
+            page_chunks.append(
+                make_chunk_record(current_sentences, len(page_chunks), filename)
+            )
 
             # Carry whole sentences into the next chunk as overlap.
             overlap = []
             overlap_length = 0
             for previous_sentence in reversed(current_sentences):
                 previous_length = len(previous_sentence[0])
-                if overlap_length + previous_length > 300:
+                if overlap_length + previous_length > CHUNK_OVERLAP_LIMIT:
                     break
                 overlap.insert(0, previous_sentence)
                 overlap_length += previous_length
@@ -71,105 +149,205 @@ def build_page_aware_chunks(pdf_reader):
         current_sentences.append((sentence, page_number))
 
     if current_sentences:
-        page_chunks.append(make_chunk_record(current_sentences, len(page_chunks)))
+        page_chunks.append(
+            make_chunk_record(current_sentences, len(page_chunks), filename)
+        )
 
     return page_chunks
 
 
-chunks = build_page_aware_chunks(reader)
-print(f"Number of chunks: {len(chunks)}")
-
-cache_file = "embeddings.json"
-cache_schema_version = 3
-embedding_model = "nomic-embed-text"
-
-# Old caches contain plain strings and cannot supply page citations, so require
-# the new schema before reusing cached chunks and embeddings.
-if os.path.exists(cache_file):
-    with open(cache_file, "r") as cache_handle:
-        cache = json.load(cache_handle)
-else:
-    cache = {}
-
-cache_is_compatible = (
-    cache.get("cache_schema_version") == cache_schema_version
-    and cache.get("pdf_hash") == pdf_hash
-    and cache.get("embedding_model") == embedding_model
-    and len(cache.get("chunks", [])) == len(cache.get("embeddings", []))
-    and all(
-        isinstance(chunk, dict)
-        and {"chunk_id", "page_numbers", "page_segments", "text"} <= chunk.keys()
-        for chunk in cache.get("chunks", [])
-    )
-)
-
-if cache_is_compatible:
-    print("Loading cached page-aware chunks and embeddings.")
-    chunks = cache["chunks"]
-    chunk_embeddings = cache["embeddings"]
-else:
-    print("Creating embeddings for the PDF.")
-    chunk_embeddings = []
-
-    for chunk in chunks:
-        response = requests.post(
-            "http://localhost:11434/api/embed",
-            json={"model": embedding_model, "input": chunk["text"]},
+def list_pdfs(folder):
+    folder = Path(folder)
+    if not folder.is_dir():
+        raise FileNotFoundError(
+            f"Document folder not found: {folder}. "
+            "Create it and add PDF files, or pass --docs sample_documents."
         )
-        response.raise_for_status()
-        chunk_embeddings.append(response.json()["embeddings"][0])
+    return sorted(
+        (
+            path
+            for path in folder.iterdir()
+            if path.is_file() and path.suffix.lower() == ".pdf"
+        ),
+        key=lambda path: path.name.lower(),
+    )
 
-    cache = {
-        "cache_schema_version": cache_schema_version,
-        "pdf_hash": pdf_hash,
-        "embedding_model": embedding_model,
-        "chunks": chunks,
-        "embeddings": chunk_embeddings,
-    }
 
-    with open(cache_file, "w") as cache_handle:
-        json.dump(cache, cache_handle)
+def load_chunks(folder):
+    pdfs = list_pdfs(folder)
+    if not pdfs:
+        raise FileNotFoundError(
+            f"No PDF files found in {folder}. Add the fictional engagement "
+            "letters and policies, or point --docs at another folder of PDFs."
+        )
+    chunks = []
+    for pdf_path in pdfs:
+        reader = PdfReader(str(pdf_path))
+        chunks.extend(build_page_aware_chunks(reader, pdf_path.name))
+    return pdfs, chunks
 
-    print("Page-aware embeddings saved to cache.")
+
+def corpus_fingerprint(pdfs):
+    digest = hashlib.sha256()
+    for pdf_path in pdfs:
+        digest.update(pdf_path.name.encode("utf-8"))
+        digest.update(b"\0")
+        digest.update(pdf_path.read_bytes())
+    return digest.hexdigest()
+
+
+def _cache_is_compatible(cache, fingerprint):
+    required_keys = {"chunk_id", "filename", "page_numbers", "page_segments", "text"}
+    return (
+        cache.get("cache_schema_version") == CACHE_SCHEMA_VERSION
+        and cache.get("corpus_fingerprint") == fingerprint
+        and cache.get("embedding_model") == EMBEDDING_MODEL
+        and len(cache.get("chunks", [])) == len(cache.get("embeddings", []))
+        and all(
+            isinstance(chunk, dict) and required_keys <= chunk.keys()
+            for chunk in cache.get("chunks", [])
+        )
+    )
+
+
+def embed_texts(texts):
+    vectors = []
+    for text in texts:
+        data = ollama_post(
+            "embed",
+            {"model": EMBEDDING_MODEL, "input": text},
+            timeout=180,
+        )
+        embeddings = data.get("embeddings") or []
+        if not embeddings:
+            raise LocalModelError(
+                f"Ollama did not return an embedding from {EMBEDDING_MODEL}."
+            )
+        vectors.append(embeddings[0])
+    return vectors
+
+
+def load_or_create_embeddings(chunks, fingerprint, cache_file):
+    cache_path = Path(cache_file)
+    cache = {}
+    if cache_path.exists():
+        try:
+            cache = json.loads(cache_path.read_text())
+        except json.JSONDecodeError:
+            cache = {}
+
+    if _cache_is_compatible(cache, fingerprint):
+        print("Loading saved embeddings for this folder.")
+        return cache["embeddings"]
+
+    print(
+        f"Creating embeddings for {len(chunks)} passages with {EMBEDDING_MODEL}."
+    )
+    embeddings = embed_texts(chunk["text"] for chunk in chunks)
+    cache_path.write_text(
+        json.dumps(
+            {
+                "cache_schema_version": CACHE_SCHEMA_VERSION,
+                "corpus_fingerprint": fingerprint,
+                "embedding_model": EMBEDDING_MODEL,
+                "chunks": chunks,
+                "embeddings": embeddings,
+            }
+        )
+    )
+    print(f"Saved embeddings to {cache_path}.")
+    return embeddings
+
+
+def load_cross_encoder():
+    try:
+        from sentence_transformers import CrossEncoder
+    except ImportError as exc:
+        raise RuntimeError(
+            "The reranker package is not installed. Run: pip install -r requirements.txt"
+        ) from exc
+
+    try:
+        # Same public MiniLM reranker as before, on CPU. The ONNX backend needs
+        # a helper that downgrades Transformers and breaks sentence-transformers.
+        return CrossEncoder(
+            RERANKER_MODEL,
+            device="cpu",
+            local_files_only=False,
+        )
+    except Exception as exc:
+        raise RuntimeError(
+            f"Reranker model '{RERANKER_MODEL}' could not be loaded. "
+            "The first run downloads this small public model. "
+            f"Details: {exc}"
+        ) from exc
+
+
+def build_index(folder, cache_file="embeddings.json", use_reranker=True):
+    folder = Path(folder)
+    pdfs, chunks = load_chunks(folder)
+    print(f"Reading {len(pdfs)} PDF file(s) from {folder}.")
+    fingerprint = corpus_fingerprint(pdfs)
+    embeddings = load_or_create_embeddings(chunks, fingerprint, cache_file)
+    reranker = load_cross_encoder() if use_reranker else None
+    return DocumentIndex(
+        folder=folder,
+        files=[pdf_path.name for pdf_path in pdfs],
+        chunks=chunks,
+        embeddings=embeddings,
+        reranker=reranker,
+    )
 
 
 def cosine_similarity(vector_a, vector_b):
     dot_product = sum(a * b for a, b in zip(vector_a, vector_b))
-
     magnitude_a = math.sqrt(sum(a * a for a in vector_a))
     magnitude_b = math.sqrt(sum(b * b for b in vector_b))
-
+    if magnitude_a == 0 or magnitude_b == 0:
+        return 0.0
     return dot_product / (magnitude_a * magnitude_b)
 
-#the above code packages the mathematical operator into a reusable function (def)
-#so that every time we compared two vectors, we can simply say: cosine_similarity(vector_a, vector_b)
 
-# Keep candidate count and final context size separate so we can compare
-# cosine ordering and reranked ordering fairly.
-CANDIDATE_COUNT = int(os.environ.get("RAG_CANDIDATE_COUNT", "10"))
-FINAL_CONTEXT_COUNT = int(os.environ.get("RAG_FINAL_CONTEXT_COUNT", "6"))
-RERANKER_MODEL = os.environ.get(
-    "RAG_RERANKER_MODEL",
-    "cross-encoder/ms-marco-MiniLM-L6-v2",
-)
-EVALUATION_CASES_FILE = "evaluation_cases.jsonl"
+def rank_by_cosine(question_embedding, chunks, embeddings):
+    results = []
+    for index, chunk in enumerate(chunks):
+        score = cosine_similarity(question_embedding, embeddings[index])
+        results.append((score, index, chunk))
+    results.sort(key=lambda result: result[0], reverse=True)
+    return results[:CANDIDATE_COUNT]
 
 
-def normalize_text(text):
-    return " ".join(str(text).casefold().split())
+def rerank_candidates(reranker, question, candidates):
+    if not candidates:
+        return []
+    pairs = [(question, chunk["text"]) for _cosine, _index, chunk in candidates]
+    scores = reranker.predict(pairs, batch_size=8)
+    reranked = [
+        (float(score), cosine_score, chunk_index, chunk)
+        for score, (cosine_score, chunk_index, chunk) in zip(scores, candidates)
+    ]
+    reranked.sort(key=lambda result: result[0], reverse=True)
+    return reranked
 
 
-def find_evaluation_case(question):
-    if not os.path.exists(EVALUATION_CASES_FILE):
-        return None
-    with open(EVALUATION_CASES_FILE, "r") as cases_file:
-        for line in cases_file:
-            if not line.strip():
-                continue
-            case = json.loads(line)
-            if normalize_text(case.get("question", "")) == normalize_text(question):
-                return case
-    return None
+def select_context(ranked_chunks, reranked=False):
+    selected_chunks = [
+        result[3] if reranked else result[2]
+        for result in ranked_chunks[:FINAL_CONTEXT_COUNT]
+    ]
+
+    evidence_by_id = {}
+    for chunk in selected_chunks:
+        for segment in chunk["page_segments"]:
+            if segment["text"].strip():
+                evidence_id = f"E{len(evidence_by_id) + 1}"
+                evidence_by_id[evidence_id] = {
+                    "filename": chunk["filename"],
+                    "chunk_id": chunk["chunk_id"],
+                    "page_number": segment["page_number"],
+                    "quote": segment["text"],
+                }
+    return selected_chunks, evidence_by_id
 
 
 def chunk_contains_quote(chunk, quote, page_number=None):
@@ -184,12 +362,22 @@ def chunk_contains_quote(chunk, quote, page_number=None):
     return False
 
 
-def find_quote_rank(ranked_chunks, quote, reranked=False):
-    for rank, result in enumerate(ranked_chunks, start=1):
-        chunk = result[3] if reranked else result[2]
-        if chunk_contains_quote(chunk, quote):
-            return rank, chunk["chunk_id"]
-    return None, None
+def answer_spans_missing_from_citations(answer, citations):
+    """Numbers and time periods in the answer must be visible in the citation."""
+    quoted = normalize_text(" ".join(citation.get("quote", "") for citation in citations))
+    patterns = [
+        r"\$\d[\d,]*(?:\.\d+)?",
+        r"\b\d+(?:\.\d+)?\s+percent\b",
+        r"\b\d+\s+(?:year|years|day|days|month|months)\b",
+        r"\b(?:one|two|three|four|five|six|seven|eight|nine|ten)\s+"
+        r"(?:business\s+)?(?:year|years|day|days|month|months)\b",
+    ]
+    missing = []
+    for pattern in patterns:
+        for span in re.findall(pattern, answer, flags=re.IGNORECASE):
+            if normalize_text(span) not in quoted and span not in missing:
+                missing.append(span)
+    return missing
 
 
 def validate_citations(answer, citations, selected_chunks):
@@ -204,10 +392,16 @@ def validate_citations(answer, citations, selected_chunks):
         chunk_id = citation.get("chunk_id")
         page_number = citation.get("page_number")
         quote = citation.get("quote", "")
+        filename = citation.get("filename")
         chunk = selected_by_id.get(chunk_id)
 
         if chunk is None:
             problems.append(f"Unknown or unselected chunk ID: {chunk_id}")
+            continue
+        if filename != chunk.get("filename"):
+            problems.append(
+                f"File {filename} does not match {chunk_id}."
+            )
             continue
         if page_number not in chunk["page_numbers"]:
             problems.append(f"Page {page_number} is not part of {chunk_id}.")
@@ -217,27 +411,37 @@ def validate_citations(answer, citations, selected_chunks):
                 f"Quote was not found on page {page_number} in {chunk_id}."
             )
 
+    if not problems:
+        for span in answer_spans_missing_from_citations(answer, citations):
+            problems.append(f'The cited passage does not contain "{span}".')
+
     return not problems, problems
 
 
-def generate_answer(evidence_by_id, selected_chunks, label):
+def _evidence_prompt(question, evidence_by_id):
     context = "\n\n".join(
-        f"[{evidence_id}] {source['quote']}"
+        (
+            f"[{evidence_id}] file={source['filename']} "
+            f"page={source['page_number']}\n{source['quote']}"
+        )
         for evidence_id, source in evidence_by_id.items()
     )
- 
-    prompt = f"""Answer the question in one sentence using only the numbered excerpts.
+    return f"""Answer the question in one sentence using only the numbered excerpts.
 Choose the evidence before writing your answer. Return only the evidence IDs
 needed to support it. If the evidence is partial, qualify the answer.
 If the excerpts provide no useful evidence, answer "I don't know." with no IDs.
- 
+Every number, date, and time period in the answer must appear in the excerpts
+for the evidence IDs you return.
+
 Question:
 {question}
- 
+
 Evidence:
 {context}
-
 """
+
+
+def _response_format(evidence_by_id):
     answered_format = {
         "type": "object",
         "properties": {
@@ -250,7 +454,6 @@ Evidence:
         },
         "required": ["evidence_ids", "answer"],
     }
-
     abstention_format = {
         "type": "object",
         "properties": {
@@ -259,20 +462,22 @@ Evidence:
         },
         "required": ["evidence_ids", "answer"],
     }
+    if evidence_by_id:
+        return {"anyOf": [answered_format, abstention_format]}
+    return abstention_format
 
-    response_format = (
-        {"anyOf": [answered_format, abstention_format]}
-        if evidence_by_id
-        else abstention_format
-    )
+
+def generate_answer(question, evidence_by_id, selected_chunks):
+    prompt = _evidence_prompt(question, evidence_by_id)
+    if os.environ.get("RAG_DEBUG"):
+        print(prompt)
 
     started_at = time.perf_counter()
-
-    response = requests.post(
-        "http://localhost:11434/api/chat",
-        json={
-            "model": "qwen2.5:3b",
-            "format": response_format,
+    data = ollama_post(
+        "chat",
+        {
+            "model": GENERATION_MODEL,
+            "format": _response_format(evidence_by_id),
             "messages": [
                 {
                     "role": "system",
@@ -281,19 +486,18 @@ Evidence:
                 {"role": "user", "content": prompt},
             ],
             "stream": False,
+            # One sentence of JSON. A cap stops a confused reply from running
+            # until the context window is full.
+            "options": {"temperature": 0, "num_predict": 256},
         },
+        timeout=600,
     )
-
-    response.raise_for_status()
-    data = response.json()
     generation_seconds = time.perf_counter() - started_at
- 
+
     try:
         parsed = json.loads(data["message"]["content"])
-
-    except json.JSONDecodeError:
+    except (KeyError, TypeError, json.JSONDecodeError):
         parsed = {}
-
     if not isinstance(parsed, dict):
         parsed = {}
 
@@ -304,6 +508,13 @@ Evidence:
     if not isinstance(answer, str) or not answer.strip():
         citations_valid = False
         citation_problems = ["Qwen did not return an answer."]
+    elif normalize_text(answer).startswith("i don't know"):
+        # Abstention stands even if the model also attached evidence IDs.
+        # Those IDs are not shown, because the answer is that the files do not say.
+        answer = "I don't know."
+        citations = []
+        citations_valid = True
+        citation_problems = []
     elif not isinstance(evidence_ids, list) or any(
         not isinstance(evidence_id, str) or evidence_id not in evidence_by_id
         for evidence_id in evidence_ids
@@ -319,177 +530,106 @@ Evidence:
         citations_valid, citation_problems = validate_citations(
             answer, citations, selected_chunks
         )
- 
+
     delivered_answer = (
         answer if citations_valid else "I don't know. (Citation validation failed.)"
     )
- 
-    print(f"\n--- {label} ---")
-    print(f"Answer: {delivered_answer}")
-
-    for citation in citations:
-        print(
-            f"Citation: p. {citation['page_number']} | {citation['chunk_id']} | "
-            f"“{citation['quote']}”"
-        )
-
-    print(f"Citation validation: {'PASS' if citations_valid else 'FAIL'}")
-
-    for problem in citation_problems:
-        print(f"Citation issue: {problem}")
-
-    print(f"Generation time: {generation_seconds:.2f}s")
- 
     return {
-        "model_answer": answer,
+        "question": question,
+        "model": GENERATION_MODEL,
+        "model_answer": answer if isinstance(answer, str) else "",
         "delivered_answer": delivered_answer,
-        "citations": citations,
+        "citations": citations if citations_valid else [],
         "citations_valid": citations_valid,
         "citation_problems": citation_problems,
-        "ollama": data,
         "generation_seconds": generation_seconds,
     }
 
-question = input("\nAsk a question about the Bitcoin paper: ")
 
-question_response = requests.post(
-    "http://localhost:11434/api/embed",
-    json={"model": embedding_model, "input": question},
-)
-question_response.raise_for_status()
-question_embedding = question_response.json()["embeddings"][0]
+def answer_question(question, index):
+    question = " ".join(str(question).split())
+    if not question:
+        raise ValueError("Type a question first.")
+    if index.reranker is None:
+        raise RuntimeError("The reranker is not loaded, so no answer was requested.")
 
-# Stage 1: cosine similarity quickly selects a small candidate set.
-retrieval_start = time.perf_counter()
-results = []
-for i, chunk in enumerate(chunks):
-    score = cosine_similarity(question_embedding, chunk_embeddings[i])
-    results.append((score, i, chunk))
+    question_embedding = embed_texts([question])[0]
+    candidates = rank_by_cosine(question_embedding, index.chunks, index.embeddings)
+    reranked = rerank_candidates(index.reranker, question, candidates)
+    selected_chunks, evidence_by_id = select_context(reranked, reranked=True)
+    # One Qwen call. The reranked passages are the only context it sees.
+    return generate_answer(question, evidence_by_id, selected_chunks)
 
-results.sort(key=lambda result: result[0], reverse=True)
-retrieval_seconds = time.perf_counter() - retrieval_start
-candidates = results[:CANDIDATE_COUNT]
 
-# Stage 2: compare each question/chunk pair and reorder the cosine candidates.
-reranker_load_start = time.perf_counter()
-try:
-    reranker = CrossEncoder(
-        "cross-encoder/ms-marco-MiniLM-L6-v2",
-        backend="onnx",
-        device="cpu",
-        local_files_only=False,
+def print_answer(result):
+    print(f"\nAnswer: {result['delivered_answer']}")
+    if result["citations_valid"] and result["citations"]:
+        print("\nSources:")
+        for citation in result["citations"]:
+            print(f"- {citation['filename']}, page {citation['page_number']}")
+            print(f"  {citation['quote']}")
+    elif result["citations_valid"]:
+        print(
+            "\nSources: none. The files do not support an answer, so nothing was cited."
+        )
+    else:
+        print("\nThe draft answer was withheld because a citation could not be verified.")
+        for problem in result["citation_problems"]:
+            print(f"- {problem}")
+    print(f"\nLocal model: {result['model']}")
+    print(f"Time: {result['generation_seconds']:.1f}s for the answer")
+
+
+def main(argv=None):
+    parser = argparse.ArgumentParser(
+        description="Ask one question about every PDF in a folder."
     )
-except Exception as exc:
-    raise RuntimeError(
-        f"Reranker model '{RERANKER_MODEL}' is not available locally. "
-        "Download it before running offline."
-    ) from exc
-reranker_load_seconds = time.perf_counter() - reranker_load_start
+    parser.add_argument(
+        "--docs",
+        default=DEFAULT_DOCS_DIR,
+        help="Folder of PDF files. Defaults to the fictional sample set.",
+    )
+    parser.add_argument(
+        "--question",
+        help="Ask this question and exit. Omit it to type a question.",
+    )
+    parser.add_argument(
+        "--cache",
+        default="embeddings.json",
+        help="Where to save embeddings for this folder.",
+    )
+    args = parser.parse_args(argv)
 
-pairs = [(question, chunk["text"]) for _cosine, _i, chunk in candidates]
-probe_pairs = [
-    ("What is the capital of France?", "Paris is the capital of France."),
-    ("What is the capital of France?", "The moon orbits Earth."),
-]
-print("Reranker model:", RERANKER_MODEL)
-print("Test scores:", reranker.predict(probe_pairs, batch_size=2))
-rerank_start = time.perf_counter()
-reranker_scores = reranker.predict(pairs, batch_size=8)
-rerank_seconds = time.perf_counter() - rerank_start
+    try:
+        index = build_index(args.docs, cache_file=args.cache)
+    except (LocalModelError, FileNotFoundError, RuntimeError, requests.RequestException) as exc:
+        print(exc)
+        return 1
 
-reranked_results = sorted(
-    [
-        (float(reranker_score), cosine_score, chunk_index, chunk)
-        for reranker_score, (cosine_score, chunk_index, chunk)
-        in zip(reranker_scores, candidates)
-    ],
-    key=lambda result: result[0],
-    reverse=True,
-)
+    print(f"Indexed {len(index.files)} PDF file(s):")
+    for name in index.files:
+        print(f"- {name}")
 
-
-def show_ranking(title, ranked_chunks, reranked=False):
-    print(f"\n--- {title} ---")
-    for rank, result in enumerate(ranked_chunks, start=1):
-        if reranked:
-            reranker_score, cosine_score, _index, chunk = result
-            score_text = (
-                f"Reranker: {reranker_score:.4f} | Cosine: {cosine_score:.4f}"
+    question = args.question
+    if not question:
+        try:
+            question = input("\nAsk a question about these files: ")
+        except EOFError:
+            print(
+                "No question was entered. Example: "
+                'python3 curator.py --question "What is the fixed fee in the Harborline Markets engagement letter?"'
             )
-        else:
-            cosine_score, _index, chunk = result
-            score_text = f"Cosine: {cosine_score:.4f}"
-        pages = ", ".join(map(str, chunk["page_numbers"]))
-        print(f"{rank}. {chunk['chunk_id']} | Pages: {pages} | {score_text}")
+            return 1
+
+    try:
+        result = answer_question(question, index)
+    except (LocalModelError, ValueError, RuntimeError, requests.RequestException) as exc:
+        print(exc)
+        return 1
+
+    print_answer(result)
+    return 0
 
 
-def select_context(ranked_chunks, reranked=False):
-    selected_chunks = [
-        result[3] if reranked else result[2]
-        for result in ranked_chunks[:FINAL_CONTEXT_COUNT]
-    ]
- 
-    evidence_by_id = {}
-    for chunk in selected_chunks:
-        for segment in chunk["page_segments"]:
-            if segment["text"].strip():
-                evidence_id = f"E{len(evidence_by_id) + 1}"
-                evidence_by_id[evidence_id] = {
-                    "chunk_id": chunk["chunk_id"],
-                    "page_number": segment["page_number"],
-                    "quote": segment["text"],
-                }
- 
-    return selected_chunks, evidence_by_id
-
-
-show_ranking("Cosine candidates", candidates)
-show_ranking("Reranked candidates", reranked_results, reranked=True)
-
-evaluation_case = find_evaluation_case(question)
-if evaluation_case:
-    gold_quote = evaluation_case["supporting_quote"]
-    cosine_rank, cosine_chunk_id = find_quote_rank(candidates, gold_quote)
-    reranked_rank, reranked_chunk_id = find_quote_rank(
-        reranked_results, gold_quote, reranked=True
-    )
-    print("\n--- Gold passage retrieval check ---")
-    print(
-        f"Cosine top 10: rank {cosine_rank} ({cosine_chunk_id})"
-        if cosine_rank is not None
-        else "Cosine top 10: supporting quote not found"
-    )
-    print(
-        f"Reranked top 10: rank {reranked_rank} ({reranked_chunk_id})"
-        if reranked_rank is not None
-        else "Reranked top 10: supporting quote not found"
-    )
-    print(f"Gold answer: {evaluation_case['gold_answer']}")
-
-baseline_chunks, baseline_context = select_context(candidates)
-reranked_chunks, reranked_context = select_context(
-    reranked_results, reranked=True
-)
-
-print(f"\n--- Exact context sent to Qwen ---\n{reranked_context}")
-
-baseline_result = generate_answer(
-    baseline_context, baseline_chunks, "Cosine-only answer"
-)
-reranked_result = generate_answer(
-    reranked_context, reranked_chunks, "Cross-encoder reranked answer"
-)
-
-print("\n--- Stage timings ---")
-print(f"Cosine retrieval: {retrieval_seconds:.4f}s")
-print(f"Reranker model load: {reranker_load_seconds:.2f}s")
-print(f"Cross-encoder scoring: {rerank_seconds:.4f}s")
-for label, result in (
-    ("Cosine-only", baseline_result),
-    ("Reranked", reranked_result),
-):
-    ollama = result["ollama"]
-    print(
-        f"{label} generation: {result['generation_seconds']:.2f}s "
-        f"(Ollama {ollama.get('total_duration', 0) / 1e9:.2f}s)"
-    )
+if __name__ == "__main__":
+    sys.exit(main())

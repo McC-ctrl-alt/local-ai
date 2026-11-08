@@ -1,5 +1,7 @@
-# Source documents — keep private
+# Private source documents stay untracked.
+# The fictional demo PDFs in sample_documents/ are an intentional exception.
 *.pdf
+!sample_documents/*.pdf
 
 # Generated embedding cache
 embeddings.json
