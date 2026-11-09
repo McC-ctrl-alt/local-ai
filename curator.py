@@ -9,6 +9,7 @@ import json #saves and loads the cache
 import hashlib #lets us detect whether the PDF has changed
 import time #lets us measure how long the embedding and Q&A process takes
 
+#Section 1: Read the PDF and build chunks.
 
 # Extract each PDF page separately so every chunk keeps its page provenance.
 PDF_PATH = "Bitcoin Thesis Paper copy.pdf"
@@ -45,7 +46,7 @@ def build_page_aware_chunks(pdf_reader):
         page_text = (page.extract_text() or "").replace("\n", " ")
         page_sentences.extend(
             (sentence.strip(), page_number)
-            for sentence in page_text.split(". ")
+            for sentence in page_text.split(". ") #splits at each period - might not be useful for decimals or tables containing periods
             if sentence.strip()
         )
 
@@ -75,6 +76,7 @@ def build_page_aware_chunks(pdf_reader):
 
     return page_chunks
 
+#Section 2: Cache validation and embedding creation
 
 chunks = build_page_aware_chunks(reader)
 print(f"Number of chunks: {len(chunks)}")
@@ -133,6 +135,7 @@ else:
     print("Page-aware embeddings saved to cache.")
 
 
+#cosine similarity measures the space between two non-zero vectors.
 def cosine_similarity(vector_a, vector_b):
     dot_product = sum(a * b for a, b in zip(vector_a, vector_b))
 
@@ -352,6 +355,7 @@ Evidence:
 
 question = input("\nAsk a question about the Bitcoin paper: ")
 
+#Section #: Embed the question and retrieve the cadidates.
 question_response = requests.post(
     "http://localhost:11434/api/embed",
     json={"model": embedding_model, "input": question},
@@ -374,7 +378,7 @@ candidates = results[:CANDIDATE_COUNT]
 reranker_load_start = time.perf_counter()
 try:
     reranker = CrossEncoder(
-        "cross-encoder/ms-marco-MiniLM-L6-v2",
+        RERANKER_MODEL,
         backend="onnx",
         device="cpu",
         local_files_only=False,
@@ -387,12 +391,6 @@ except Exception as exc:
 reranker_load_seconds = time.perf_counter() - reranker_load_start
 
 pairs = [(question, chunk["text"]) for _cosine, _i, chunk in candidates]
-probe_pairs = [
-    ("What is the capital of France?", "Paris is the capital of France."),
-    ("What is the capital of France?", "The moon orbits Earth."),
-]
-print("Reranker model:", RERANKER_MODEL)
-print("Test scores:", reranker.predict(probe_pairs, batch_size=2))
 rerank_start = time.perf_counter()
 reranker_scores = reranker.predict(pairs, batch_size=8)
 rerank_seconds = time.perf_counter() - rerank_start
