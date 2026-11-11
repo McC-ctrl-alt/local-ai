@@ -157,7 +157,7 @@ RERANKER_MODEL = os.environ.get(
 )
 EVALUATION_CASES_FILE = "evaluation_cases.jsonl"
 
-
+#Helper functions:
 def normalize_text(text):
     return " ".join(str(text).casefold().split())
 
@@ -222,6 +222,7 @@ def validate_citations(answer, citations, selected_chunks):
 
     return not problems, problems
 
+#(Function) Section #4: Generate an answer using the selected evidence chunks and validate the citations.
 
 def generate_answer(evidence_by_id, selected_chunks, label):
     context = "\n\n".join(
@@ -355,7 +356,7 @@ Evidence:
 
 question = input("\nAsk a question about the Bitcoin paper: ")
 
-#Section #: Embed the question and retrieve the cadidates.
+#Section #5: Embed the question and retrieve the cadidates.
 question_response = requests.post(
     "http://localhost:11434/api/embed",
     json={"model": embedding_model, "input": question},
