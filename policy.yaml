@@ -1,0 +1,53 @@
+# Fictional firm. Python enforces allowed_roles; the router only picks a department.
+departments:
+  tax:
+    name: Tax
+    folder: docs/tax
+    description: Tax folder. Estimated tax voucher due dates and the client business meal deduction.
+    allowed_roles:
+      - tax_analyst
+      - tax_partner
+    rules:
+      - id: TAX-01
+        kind: access
+        text: Tax documents may be read only by the tax_analyst and tax_partner roles.
+      - id: TAX-02
+        kind: scope
+        text: A Tax answer may use only documents in the Tax folder.
+      - id: TAX-03
+        kind: content
+        text: Estimated-tax due dates are controlled by the estimated tax calendar.
+  legal:
+    name: Legal
+    folder: docs/legal
+    description: Legal folder. Privilege protocol, contract review standard, and other legal records.
+    allowed_roles:
+      - counsel
+      - general_counsel
+    rules:
+      - id: LEG-01
+        kind: access
+        text: Legal documents may be read only by the counsel and general_counsel roles.
+      - id: LEG-02
+        kind: scope
+        text: A Legal answer may use only documents in the Legal folder.
+      - id: LEG-03
+        kind: content
+        text: Privilege markings are controlled by the privilege protocol.
+  hr:
+    name: HR
+    folder: docs/hr
+    description: HR folder. Parental leave policy and the remote work policy.
+    allowed_roles:
+      - hr_partner
+      - people_ops
+    rules:
+      - id: HR-01
+        kind: access
+        text: HR documents may be read only by the hr_partner and people_ops roles.
+      - id: HR-02
+        kind: scope
+        text: An HR answer may use only documents in the HR folder.
+      - id: HR-03
+        kind: content
+        text: Parental leave length is controlled by the parental leave policy.
