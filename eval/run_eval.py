@@ -6,6 +6,7 @@ import sys
 from pathlib import Path
 
 import yaml
+from pypdf import PdfReader
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
@@ -228,7 +229,68 @@ def load_questions(path):
     return questions
 
 
-def evaluate(folder, questions):
+def raw_page_text(pdf_path, page_number):
+    reader = PdfReader(str(pdf_path))
+    if page_number < 1 or page_number > len(reader.pages):
+        return ""
+    return reader.pages[page_number - 1].extract_text() or ""
+
+
+def write_dump(dump_dir, item, folder, outcome):
+    dump_dir.mkdir(parents=True, exist_ok=True)
+    lines = ["=== expected page ==="]
+    source = item.get("file") or ""
+    page = item.get("page")
+    if source and page is not None:
+        pdf_path = Path(folder) / source
+        lines.append(f"{source} page {page}")
+        if pdf_path.is_file():
+            lines.append(raw_page_text(pdf_path, int(page)))
+        else:
+            lines.append(f"(file not found: {pdf_path})")
+    else:
+        lines.append("(no expected page)")
+
+    lines.append("")
+    lines.append("=== top-6 passages sent to Qwen ===")
+    evidence = outcome.get("evidence") or {}
+    quotes_by_chunk = {}
+    for item_id, quote in evidence.items():
+        quotes_by_chunk.setdefault(quote.get("chunk_id"), []).append((item_id, quote))
+    passages = outcome.get("passages") or []
+    if not passages:
+        lines.append("(none)")
+    for rank, chunk in enumerate(passages, start=1):
+        pages = ",".join(str(number) for number in chunk.get("page_numbers", []))
+        source_file = chunk.get("source_file") or "unknown"
+        lines.append(f"{rank}. {chunk.get('chunk_id', '')} | {source_file} | p.{pages}")
+        sent = quotes_by_chunk.get(chunk.get("chunk_id"), [])
+        if not sent:
+            lines.append("(not included in the prompt)")
+        for evidence_id, quote in sent:
+            lines.append(f"[{evidence_id}] p.{quote.get('page_number')}: {quote.get('quote', '')}")
+        lines.append("")
+
+    lines.append("=== prompt ===")
+    user_prompt = outcome.get("prompt") or ""
+    if not user_prompt:
+        lines.append("(no prompt sent)")
+    else:
+        lines.append("SYSTEM:")
+        lines.append(outcome.get("system_prompt") or "")
+        lines.append("")
+        lines.append("USER:")
+        lines.append(user_prompt)
+
+    path = dump_dir / f"{item['id']}.txt"
+    path.write_text("\n".join(lines).rstrip() + "\n", encoding="utf-8")
+    return path
+
+
+def evaluate(folder, questions, dump_dir=None):
+    folder = Path(folder)
+    if not folder.is_dir():
+        raise SystemExit(f"No PDF folder at {folder}.")
     index = curator.load_corpus(curator.list_pdfs(folder))
     print("Loading the reranker...", flush=True)
     reranker = curator.load_reranker()
@@ -288,6 +350,9 @@ def evaluate(folder, questions):
             "needs_human": "yes" if needs_human else "no",
         }
         rows.append(row)
+        if dump_dir is not None:
+            written = write_dump(dump_dir, item, folder, outcome)
+            print(f"dump: {written}")
         print_question(row)
     return rows
 
@@ -367,12 +432,23 @@ def main(argv=None):
     parser.add_argument("--folder", type=Path, default=ROOT / "knowledge_test")
     parser.add_argument("--questions", type=Path, default=ROOT / "eval" / "questions.yaml")
     parser.add_argument("--output", type=Path, default=ROOT / "eval" / "results.csv")
+    parser.add_argument(
+        "--dump",
+        action="store_true",
+        help="Write eval/dumps/<id>.txt with the expected page, top-6 passages, and prompt.",
+    )
     args = parser.parse_args(argv)
     questions = load_questions(args.questions.expanduser().resolve())
-    rows = evaluate(args.folder.expanduser().resolve(), questions)
-    write_results(args.output, rows)
+    folder = args.folder.expanduser().resolve()
+    dump_dir = (ROOT / "eval" / "dumps") if args.dump else None
+    rows = evaluate(folder, questions, dump_dir)
+    output = args.output if args.output.is_absolute() else ROOT / args.output
+    write_results(output, rows)
     summary = summarize(rows)
-    summary_path = args.output.with_name("summary.txt")
+    if output.name == "results.csv":
+        summary_path = output.with_name("summary.txt")
+    else:
+        summary_path = output.with_suffix(".summary.txt")
     summary_path.write_text(summary + "\n", encoding="utf-8")
     print("\n=== summary ===")
     print(summary)

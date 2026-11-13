@@ -189,6 +189,7 @@ def select_context(ranked_chunks, reranked=False):
                 "chunk_id": chunk["chunk_id"],
                 "page_number": page_number,
                 "quote": quote,
+                "source_file": chunk.get("source_file", ""),
             }
 
     return selected_chunks, evidence_by_id
@@ -300,6 +301,28 @@ def load_or_build_index(pdf_path):
     return index
 
 
+def list_pdfs(folder):
+    folder = Path(folder)
+    return sorted(
+        path for path in folder.iterdir() if path.is_file() and path.suffix.lower() == ".pdf"
+    )
+
+
+def load_corpus(pdf_paths):
+    """One index over every PDF. Retrieval and chunking stay the same per file."""
+    chunks = []
+    embeddings = []
+    for pdf_path in pdf_paths:
+        pdf_path = Path(pdf_path)
+        index = load_or_build_index(pdf_path)
+        for chunk in index["chunks"]:
+            tagged = dict(chunk)
+            tagged["source_file"] = pdf_path.name
+            chunks.append(tagged)
+        embeddings.extend(index["embeddings"])
+    return {"chunks": chunks, "embeddings": embeddings}
+
+
 def cosine_similarity(vector_a, vector_b):
     dot_product = sum(a * b for a, b in zip(vector_a, vector_b))
     denominator = math.hypot(*vector_a) * math.hypot(*vector_b)
@@ -336,12 +359,33 @@ def rerank_candidates(question, candidates, reranker):
     return sorted(results, key=lambda item: item[0], reverse=True)
 
 
-def generate_answer(question, ranked, pdf_name, reranked=False):
+def generate_answer(question, ranked, pdf_name, reranked=False, quiet=False):
     selected_chunks, evidence = select_context(ranked, reranked=reranked)
     context = "\n\n".join(f"[{key}] {item['quote']}" for key, item in evidence.items())
+    system_prompt = (
+        "Answer the question directly in one short sentence using the supplied excerpts. "
+        "Cite the single excerpt that most directly supports the answer. Use a second "
+        "excerpt only if the answer needs both. If the excerpts do not directly answer "
+        "the question, return 'I don't know.' and an empty evidence_ids list."
+    )
+    user_prompt = f"Question:\n{question}\n\nEvidence:\n{context}" if context else ""
+
+    def finish(answer, citations):
+        if not quiet:
+            print(f"Answer: {answer}")
+            for page_number in dict.fromkeys(citation["page_number"] for citation in citations):
+                print(f"Source: {pdf_name}, page {page_number}")
+        return {
+            "answer": answer,
+            "citations": citations,
+            "system_prompt": system_prompt if context else "",
+            "prompt": user_prompt,
+            "passages": selected_chunks,
+            "evidence": evidence,
+        }
+
     if not context:
-        print("Answer: I don't know.")
-        return
+        return finish("I don't know.", [])
 
     schema = {
         "type": "object",
@@ -355,23 +399,14 @@ def generate_answer(question, ranked, pdf_name, reranked=False):
         },
         "required": ["answer", "evidence_ids"],
     }
-    output = chat_answer(
-        "Answer the question directly in one short sentence using the supplied excerpts. "
-        "Cite the single excerpt that most directly supports the answer. Use a second "
-        "excerpt only if the answer needs both. If the excerpts do not directly answer "
-        "the question, return 'I don't know.' and an empty evidence_ids list.",
-        f"Question:\n{question}\n\nEvidence:\n{context}",
-        schema,
-        max_tokens=128,
-    )
+    output = chat_answer(system_prompt, user_prompt, schema, max_tokens=128)
     try:
         result = json.loads(output)
     except json.JSONDecodeError:
         result = None
 
     if not isinstance(result, dict):
-        print("Answer: I don't know. (The model returned an invalid response.)")
-        return
+        return finish("I don't know. (The model returned an invalid response.)", [])
 
     answer = result.get("answer")
     ids = result.get("evidence_ids")
@@ -382,21 +417,17 @@ def generate_answer(question, ranked, pdf_name, reranked=False):
         or len(ids) > MAX_CITATIONS
         or any(not isinstance(key, str) or key not in evidence for key in ids)
     ):
-        print("Answer: I don't know. (The model returned an invalid answer or citation.)")
-        return
+        return finish("I don't know. (The model returned an invalid answer or citation.)", [])
 
     citations = [evidence[key] for key in dict.fromkeys(ids)]
     valid, _problems = validate_citations(answer, citations, selected_chunks)
     if not valid:
-        print("Answer: I don't know. (Citation validation failed.)")
-        return
+        return finish("I don't know. (Citation validation failed.)", [])
 
-    print(f"Answer: {answer.strip()}")
-    for page_number in dict.fromkeys(citation["page_number"] for citation in citations):
-        print(f"Source: {pdf_name}, page {page_number}")
+    return finish(answer.strip(), citations)
 
 
-def ask_question(question, index, pdf_name, reranker, compare):
+def ask_question(question, index, pdf_name, reranker, compare=False, quiet=False):
     started = perf_counter()
     candidates = rank_candidates(question, index)
     search_seconds = perf_counter() - started
@@ -410,7 +441,7 @@ def ask_question(question, index, pdf_name, reranker, compare):
             print(f"Reranker unavailable for this question. Using cosine search. {error}")
         rerank_seconds = perf_counter() - started
 
-    if compare:
+    if compare and not quiet:
         show_ranking("Cosine candidates", candidates)
         if reranked is not None:
             show_ranking("Reranked candidates", reranked, reranked=True)
@@ -425,21 +456,34 @@ def ask_question(question, index, pdf_name, reranker, compare):
             print(f"Expected answer: {case['gold_answer']}")
     started = perf_counter()
     if compare:
-        print("\nCosine-only answer")
-        generate_answer(question, candidates, pdf_name)
+        if not quiet:
+            print("\nCosine-only answer")
+        result = generate_answer(question, candidates, pdf_name, quiet=quiet)
         if reranked is not None:
-            print("\nReranked answer")
-            generate_answer(question, reranked, pdf_name, reranked=True)
+            if not quiet:
+                print("\nReranked answer")
+            result = generate_answer(
+                question, reranked, pdf_name, reranked=True, quiet=quiet
+            )
     elif reranked is None:
-        generate_answer(question, candidates, pdf_name)
+        result = generate_answer(question, candidates, pdf_name, quiet=quiet)
     else:
-        generate_answer(question, reranked, pdf_name, reranked=True)
+        result = generate_answer(
+            question, reranked, pdf_name, reranked=True, quiet=quiet
+        )
     answer_seconds = perf_counter() - started
     timings = [f"search {search_seconds:.1f}s"]
     if rerank_seconds is not None:
         timings.append(f"rerank {rerank_seconds:.1f}s")
     timings.append(f"answer {answer_seconds:.1f}s")
-    print("Time: " + ", ".join(timings))
+    if not quiet:
+        print("Time: " + ", ".join(timings))
+    result["candidates"] = candidates
+    result["reranked"] = reranked
+    result["search_seconds"] = search_seconds
+    result["rerank_seconds"] = rerank_seconds
+    result["answer_seconds"] = answer_seconds
+    return result
 
 
 def main(argv=None):
