@@ -1,0 +1,108 @@
+=== expected page ===
+Tax_Department.pdf page 1
+NORTHSTAR ADVISORY GROUP  /  INTERNAL POLICY LIBRARY
+Tax  |  Controlled copy in Local AI Demonstration Library
+1  /  3
+TAX DEPARTMENT
+Corporate tax, GST/HST & expense evidence standard
+DOCUMENT CONTROL
+Owner
+Director, Finance & Tax
+Policy ID / version
+TAX-02 | 1.0
+Effective date
+1 April 2026
+Classification
+Confidential - Finance Restricted
+Applies to
+Northstar Advisory Group, 150 employees; Toronto HQ and remote staff
+Purpose and financial context
+Northstar Advisory Group is a fictional Canadian professional-services firm headquartered in Toronto, with 150 employees and
+approximately CAD 32 million annual revenue. It delivers consulting services across Canada through fixed-fee and time-and-materials
+engagements. Finance & Tax owns filings and maintains support for tax positions. All figures, procedures and company facts are synthetic
+demonstration material; consult current law and external tax advisers for actual filings.
+1. Corporate tax compliance calendar
+Northstar uses a December 31 fiscal year-end. The Controller owns the close; the Director, Finance & Tax signs off the tax provision and
+filing package. Calendar dates below are internal control deadlines, set ahead of normal statutory deadlines. If a statutory due date falls on a
+weekend or holiday, Tax confirms the applicable rule and adjusts the calendar.
+ When (internal)
+Owner
+Required deliverable / control
+Monthly, by business day 8
+Accounting
+Close ledger; reconcile revenue, WIP, accruals, payroll, fixed assets, prepaid expenses and
+intercompany balances. Lock period after Controller review.
+Quarterly, by day 20 after
+quarter-end
+Tax analyst
+Update tax provision forecast, instalment estimate, loss/credit continuity, permanent differences
+and uncertain positions; Director approves payment changes.
+By February 15
+Controller + Tax
+Complete year-end trial balance, fixed-asset continuity, bonus/accrual support, legal claims
+summary, charitable receipts and related-party schedules.
+By March 15
+Director, Finance & Tax
+Draft T2 return, Schedule 1 reconciliation, tax provision, instalment reconciliation, supporting
+schedules and issue list; send to external tax adviser for review.
+By April 15
+CFO + external adviser
+Resolve review points; CFO approves return and payment; authorized officer signs. Submit
+before statutory filing/payment deadline.
+Monthly instalments
+Treasury + Tax
+Tax analyst calculates required instalment and compares to safe-harbour/forecast; CFO
+approves payment; treasury retains bank confirmation.
+Year-end + 6 years
+Records custodian
+Retain tax workpapers and source records under retention schedule; suspend destruction for
+audit, objection, litigation or legal hold.
+Filing discipline
+A corporate income tax return is generally due six months after fiscal year-end. A corporate balance owing is generally due two months after year-end, with a
+three-month balance-due rule potentially available to qualifying Canadian-controlled private corporations. Tax confirms Northstar’s eligibility and current statutory
+dates with its adviser each year; the internal April 15 target does not extend a legal deadline.
+2. GST/HST controls
+Northstar files monthly GST/HST returns as an internal control based on annual taxable revenue; Tax confirms the registered reporting
+period and electronic filing requirements. Accounting reconciles tax collected and input tax credits (ITCs) to the general ledger each month.
+Director approves return and remittance; Treasury submits payment and saves confirmation.
+
+
+=== top-6 passages sent to Qwen ===
+1. chunk-003-8ce4a0307e | Tax_Department.pdf | p.1
+[E1] p.1: By April 15 CFO + external adviser Resolve review points; CFO approves return and payment; authorized officer signs Submit before statutory filing/payment deadline Monthly instalments Treasury + Tax Tax analyst calculates required instalment and compares to safe-harbour/forecast; CFO approves payment; treasury retains bank confirmation Year-end + 6 years Records custodian Retain tax workpapers and source records under retention schedule; suspend destruction for audit, objection, litigation or legal hold Filing discipline A corporate income tax return is generally due six months after fiscal year-end A corporate balance owing is generally due two months after year-end, with a three-month balance-due rule potentially available to qualifying Canadian-controlled private corporations Tax confirms Northstar’s eligibility and current statutory dates with its adviser each year; the internal April 15 target does not extend a legal deadline 2
+
+2. chunk-007-0556e03629 | Tax_Department.pdf | p.2
+[E2] p.2: For a monthly filer, the return and payment are generally due one month after the reporting period Internal target: submit by the 20th of the following month If the 20th is not a business day, target the prior business day Do not assume the internal target changes statutory due dates 3 Expense deductibility and approvals Expense type Tax evidence / treatment control Client meals and entertainment Record attendees, client or business purpose, date and itemized receipt Generally only 50% is deductible for income tax; ITC recovery may also be restricted Flag unusual events, employee-only functions and exceptions for Tax review Travel and mileage Business itinerary, dates, destination, purpose, project and receipts Commuting is personal Mileage requires date, origin/destination, business purpose and approved rate; Tax updates rate annually Home office / remote work No employee deduction is assumed in corporate books without eligibility and substantiation
+
+3. chunk-006-fd9e18b7f5 | Tax_Department.pdf | p.2
+[E3] p.2: Investigate differences over CAD 500 or 1% of account balance before filing 4 Review and submit Preparer signs checklist; independent reviewer compares return to GL and prior period; Director approves Submit and remit on or before confirmed due date; retain submission receipt and bank confirmation 5 Correction Correct errors in the next return where permitted or use prescribed adjustment process Material errors, repeated misclassification, or potential penalty exposure go to Director and external adviser promptly Reporting and remittance dates Tax maintains CRA account details and confirms the assigned reporting period For a monthly filer, the return and payment are generally due one month after the reporting period Internal target: submit by the 20th of the following month If the 20th is not a business day, target the prior business day Do not assume the internal target changes statutory due dates 3
+
+4. chunk-001-e09876ab71 | Tax_Department.pdf | p.1
+[E4] p.1: Finance & Tax owns filings and maintains support for tax positions All figures, procedures and company facts are synthetic demonstration material; consult current law and external tax advisers for actual filings 1 Corporate tax compliance calendar Northstar uses a December 31 fiscal year-end The Controller owns the close; the Director, Finance & Tax signs off the tax provision and filing package Calendar dates below are internal control deadlines, set ahead of normal statutory deadlines If a statutory due date falls on a weekend or holiday, Tax confirms the applicable rule and adjusts the calendar When (internal) Owner Required deliverable / control Monthly, by business day 8 Accounting Close ledger; reconcile revenue, WIP, accruals, payroll, fixed assets, prepaid expenses and intercompany balances Lock period after Controller review
+
+5. chunk-002-eeb80a3a14 | Tax_Department.pdf | p.1
+[E5] p.1: When (internal) Owner Required deliverable / control Monthly, by business day 8 Accounting Close ledger; reconcile revenue, WIP, accruals, payroll, fixed assets, prepaid expenses and intercompany balances Lock period after Controller review Quarterly, by day 20 after quarter-end Tax analyst Update tax provision forecast, instalment estimate, loss/credit continuity, permanent differences and uncertain positions; Director approves payment changes By February 15 Controller + Tax Complete year-end trial balance, fixed-asset continuity, bonus/accrual support, legal claims summary, charitable receipts and related-party schedules By March 15 Director, Finance & Tax Draft T2 return, Schedule 1 reconciliation, tax provision, instalment reconciliation, supporting schedules and issue list; send to external tax adviser for review By April 15 CFO + external adviser Resolve review points; CFO approves return and payment; authorized officer signs Submit before statutory filing/payment deadline
+
+6. chunk-014-80ba08aa91 | Tax_Department.pdf | p.3
+[E6] p.3: Assess income tax, GST/HST, payroll, withholding, elections and documentation before execution Governance and limitations Director, Finance & Tax owns this standard and reviews it annually with the CFO and external tax adviser A preparer may not approve their own return or payment Exceptions require written CFO and Tax Director approval; Legal review is required for legal holds, disputes, contract terms, or privilege-sensitive work Tax law changes; the adviser confirms current thresholds, rates and deadlines for each filing year Document history: Version 1.0 issued 1 April 2026 Owner: Director, Finance & Tax
+
+=== prompt ===
+SYSTEM:
+Answer the question directly in one short sentence using the supplied excerpts. Cite the single excerpt that most directly supports the answer. Use a second excerpt only if the answer needs both. If the excerpts do not directly answer the question, return 'I don't know.' and an empty evidence_ids list.
+
+USER:
+Question:
+When is a corporate income tax return generally due?
+
+Evidence:
+[E1] By April 15 CFO + external adviser Resolve review points; CFO approves return and payment; authorized officer signs Submit before statutory filing/payment deadline Monthly instalments Treasury + Tax Tax analyst calculates required instalment and compares to safe-harbour/forecast; CFO approves payment; treasury retains bank confirmation Year-end + 6 years Records custodian Retain tax workpapers and source records under retention schedule; suspend destruction for audit, objection, litigation or legal hold Filing discipline A corporate income tax return is generally due six months after fiscal year-end A corporate balance owing is generally due two months after year-end, with a three-month balance-due rule potentially available to qualifying Canadian-controlled private corporations Tax confirms Northstar’s eligibility and current statutory dates with its adviser each year; the internal April 15 target does not extend a legal deadline 2
+
+[E2] For a monthly filer, the return and payment are generally due one month after the reporting period Internal target: submit by the 20th of the following month If the 20th is not a business day, target the prior business day Do not assume the internal target changes statutory due dates 3 Expense deductibility and approvals Expense type Tax evidence / treatment control Client meals and entertainment Record attendees, client or business purpose, date and itemized receipt Generally only 50% is deductible for income tax; ITC recovery may also be restricted Flag unusual events, employee-only functions and exceptions for Tax review Travel and mileage Business itinerary, dates, destination, purpose, project and receipts Commuting is personal Mileage requires date, origin/destination, business purpose and approved rate; Tax updates rate annually Home office / remote work No employee deduction is assumed in corporate books without eligibility and substantiation
+
+[E3] Investigate differences over CAD 500 or 1% of account balance before filing 4 Review and submit Preparer signs checklist; independent reviewer compares return to GL and prior period; Director approves Submit and remit on or before confirmed due date; retain submission receipt and bank confirmation 5 Correction Correct errors in the next return where permitted or use prescribed adjustment process Material errors, repeated misclassification, or potential penalty exposure go to Director and external adviser promptly Reporting and remittance dates Tax maintains CRA account details and confirms the assigned reporting period For a monthly filer, the return and payment are generally due one month after the reporting period Internal target: submit by the 20th of the following month If the 20th is not a business day, target the prior business day Do not assume the internal target changes statutory due dates 3
+
+[E4] Finance & Tax owns filings and maintains support for tax positions All figures, procedures and company facts are synthetic demonstration material; consult current law and external tax advisers for actual filings 1 Corporate tax compliance calendar Northstar uses a December 31 fiscal year-end The Controller owns the close; the Director, Finance & Tax signs off the tax provision and filing package Calendar dates below are internal control deadlines, set ahead of normal statutory deadlines If a statutory due date falls on a weekend or holiday, Tax confirms the applicable rule and adjusts the calendar When (internal) Owner Required deliverable / control Monthly, by business day 8 Accounting Close ledger; reconcile revenue, WIP, accruals, payroll, fixed assets, prepaid expenses and intercompany balances Lock period after Controller review
+
+[E5] When (internal) Owner Required deliverable / control Monthly, by business day 8 Accounting Close ledger; reconcile revenue, WIP, accruals, payroll, fixed assets, prepaid expenses and intercompany balances Lock period after Controller review Quarterly, by day 20 after quarter-end Tax analyst Update tax provision forecast, instalment estimate, loss/credit continuity, permanent differences and uncertain positions; Director approves payment changes By February 15 Controller + Tax Complete year-end trial balance, fixed-asset continuity, bonus/accrual support, legal claims summary, charitable receipts and related-party schedules By March 15 Director, Finance & Tax Draft T2 return, Schedule 1 reconciliation, tax provision, instalment reconciliation, supporting schedules and issue list; send to external tax adviser for review By April 15 CFO + external adviser Resolve review points; CFO approves return and payment; authorized officer signs Submit before statutory filing/payment deadline
+
+[E6] Assess income tax, GST/HST, payroll, withholding, elections and documentation before execution Governance and limitations Director, Finance & Tax owns this standard and reviews it annually with the CFO and external tax adviser A preparer may not approve their own return or payment Exceptions require written CFO and Tax Director approval; Legal review is required for legal holds, disputes, contract terms, or privilege-sensitive work Tax law changes; the adviser confirms current thresholds, rates and deadlines for each filing year Document history: Version 1.0 issued 1 April 2026 Owner: Director, Finance & Tax

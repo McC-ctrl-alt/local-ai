@@ -155,25 +155,10 @@ RERANKER_MODEL = os.environ.get(
     "RAG_RERANKER_MODEL",
     "cross-encoder/ms-marco-MiniLM-L6-v2",
 )
-EVALUATION_CASES_FILE = "evaluation_cases.jsonl"
 
 #Helper functions:
 def normalize_text(text):
     return " ".join(str(text).casefold().split())
-
-
-def find_evaluation_case(question):
-    if not os.path.exists(EVALUATION_CASES_FILE):
-        return None
-    with open(EVALUATION_CASES_FILE, "r") as cases_file:
-        for line in cases_file:
-            if not line.strip():
-                continue
-            case = json.loads(line)
-            if normalize_text(case.get("question", "")) == normalize_text(question):
-                return case
-    return None
-
 
 def chunk_contains_quote(chunk, quote, page_number=None):
     normalized_quote = normalize_text(quote)
@@ -445,25 +430,6 @@ def select_context(ranked_chunks, reranked=False):
 show_ranking("Cosine candidates", candidates)
 show_ranking("Reranked candidates", reranked_results, reranked=True)
 
-evaluation_case = find_evaluation_case(question)
-if evaluation_case:
-    gold_quote = evaluation_case["supporting_quote"]
-    cosine_rank, cosine_chunk_id = find_quote_rank(candidates, gold_quote)
-    reranked_rank, reranked_chunk_id = find_quote_rank(
-        reranked_results, gold_quote, reranked=True
-    )
-    print("\n--- Gold passage retrieval check ---")
-    print(
-        f"Cosine top 10: rank {cosine_rank} ({cosine_chunk_id})"
-        if cosine_rank is not None
-        else "Cosine top 10: supporting quote not found"
-    )
-    print(
-        f"Reranked top 10: rank {reranked_rank} ({reranked_chunk_id})"
-        if reranked_rank is not None
-        else "Reranked top 10: supporting quote not found"
-    )
-    print(f"Gold answer: {evaluation_case['gold_answer']}")
 
 baseline_chunks, baseline_context = select_context(candidates)
 reranked_chunks, reranked_context = select_context(

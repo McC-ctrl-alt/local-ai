@@ -1,0 +1,10 @@
+correct: 4
+partial: 2
+wrong: 3
+correct-IDK: 1
+citation accuracy: 9/10 (90%)
+avg seconds: search 0.2, rerank 6.6, answer 14.6, total 21.3
+needs human scoring:
+- hr-vacation-entitlement [wrong] The standard vacation entitlement for a full year is 20 days.
+- tax-ontario-hst [partial] 13%
+- legal-approval-band [partial] CFO + General Counsel

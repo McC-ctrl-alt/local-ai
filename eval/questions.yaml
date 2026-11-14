@@ -1,0 +1,104 @@
+# Ten questions over knowledge_test/ (HR, Legal, Tax).
+# facts are what the answer must contain. page_facts are what the extracted
+# page must contain. no-answer questions have no supporting page.
+questions:
+  - id: hr-vacation-entitlement
+    kind: fact
+    file: HR_Department.pdf
+    page: 1
+    question: What is the standard vacation entitlement for a full year?
+    expected: 15 working days per full year
+    facts:
+      - 15 working days
+
+  - id: hr-benefits-enrollment
+    kind: two-detail
+    file: HR_Department.pdf
+    page: 1
+    question: When do eligible regular employees enroll in benefits, and what share of the standard health and dental premium does the employer pay?
+    expected: Enrollment is from the first of the month after 30 days, and the employer pays 75%.
+    facts:
+      - first of month after 30 days
+      - 75%
+
+  - id: hr-personnel-retention
+    kind: rephrased
+    file: HR_Department.pdf
+    page: 3
+    question: Once someone has left the firm, how long are ordinary personnel files kept?
+    expected: 7 years after employment ends
+    facts:
+      - 7 years
+    page_facts:
+      - 7 years after employment ends
+
+  - id: tax-ontario-hst
+    kind: number+unit
+    file: Tax_Department.pdf
+    page: 2
+    question: What HST rate generally applies to a taxable service supplied in Ontario?
+    expected: 13% HST
+    facts:
+      - 13%
+      - HST
+
+  - id: legal-approval-band
+    kind: table-row
+    file: Legal_Department.pdf
+    page: 1
+    question: Who must approve a contract before signature when total committed fees are between CAD 100,001 and 500,000?
+    expected: CFO + General Counsel + department VP
+    facts:
+      - CFO
+      - General Counsel
+      - department VP
+    page_facts:
+      - CAD 100,001-500,000
+      - CFO + General Counsel + department VP
+
+  - id: legal-nda-term
+    kind: fact
+    file: Legal_Department.pdf
+    page: 2
+    question: What is the default term of an NDA?
+    expected: 3 years
+    facts:
+      - 3 years
+    page_facts:
+      - Default term 3 years
+
+  - id: tax-return-due
+    kind: fact
+    file: Tax_Department.pdf
+    page: 1
+    question: When is a corporate income tax return generally due?
+    expected: six months after fiscal year-end
+    facts:
+      - six months after fiscal year-end
+
+  - id: hr-harassment-ack
+    kind: fact
+    file: HR_Department.pdf
+    page: 2
+    question: How soon must HR acknowledge a report of harassment, discrimination, reprisal, violence, or an immediate safety concern?
+    expected: within 1 business day
+    facts:
+      - 1 business day
+    page_facts:
+      - acknowledges within 1 business day
+
+  - id: hr-rrsp-match
+    kind: no-answer
+    file: ""
+    page: null
+    question: What percentage of salary does Northstar contribute as an employer RRSP match?
+    expected: I don't know
+    facts: []
+
+  - id: hr-parental-weeks
+    kind: no-answer
+    file: ""
+    page: null
+    question: How many weeks of paid parental leave does an employee with 12 months of service receive?
+    expected: I don't know
+    facts: []

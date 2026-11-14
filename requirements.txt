@@ -1,3 +1,4 @@
 pypdf
 requests
+pyyaml
 sentence-transformers

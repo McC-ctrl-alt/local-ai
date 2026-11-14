@@ -1,0 +1,111 @@
+=== expected page ===
+HR_Department.pdf page 2
+NORTHSTAR ADVISORY GROUP  /  INTERNAL POLICY LIBRARY
+HR  |  Controlled copy in Local AI Demonstration Library
+2  /  3
+3. Performance and development
+Northstar uses a continuous-feedback cycle with a formal annual review. Managers set 3-5 measurable goals within 30 days of the fiscal
+year or role start; goals should cover client outcomes, quality/risk, collaboration, and capability development. The formal review cycle runs
+January-February for the prior calendar year.
+ Step
+Timing
+Practice
+Goal setting
+By day 30 / each
+January
+Agree outcomes, measures, dependencies and support. Record in HR system.
+Check-ins
+At least quarterly
+Discuss workload, feedback, development, wellbeing, and barriers. Record concise actions, not sensitive
+speculation.
+Self-review
+January 15
+Employee summarizes outcomes, evidence, learning and next goals. Participation is encouraged; HR
+provides accessible alternatives.
+Manager review
+By February 15
+Rate performance against published role expectations; cite examples and distinguish facts from opinion.
+No surprises: discuss material concerns promptly.
+Calibration
+Late February
+Director and HR review consistency, bias, evidence and promotion recommendations. Pay decisions use
+approved budget and compensation bands.
+Conversation / plan
+By March 15
+Manager meets employee, shares review, listens, confirms goals and development actions; employee may
+add comments. HR retains final record.
+Performance concerns
+ Address ordinary gaps early with specific examples, expected standard, coaching, resources and a reasonable follow-up date. Document
+the conversation and employee response.
+ A formal improvement plan normally runs 30-60 days with weekly or biweekly check-ins, measurable expectations, support, and
+consequences if expectations are not met. HR reviews before issue.
+ Do not use performance management to penalize protected leave, accommodation requests, discrimination complaints, or good-faith
+reporting. Pause and contact HR if any such issue is raised.
+4. Employee relations and escalation
+ Issue
+First contact / response
+Harassment, discrimination, reprisal,
+violence, or immediate safety concern
+Report to HR Director or any manager; urgent danger to emergency services/security. HR acknowledges within
+1 business day and starts prompt, impartial triage. Alternate HR contact: General Counsel if HR is implicated.
+Workplace conflict or conduct concern
+Manager or HR Business Partner. HR assesses conflicts, safety, confidentiality and whether a formal
+investigation is needed.
+Pay, benefits, time off, accommodation
+HR Service Desk; acknowledge in 2 business days, target resolution or update within 10 business days.
+Complaint involving manager / retaliation
+concern
+HR Director or General Counsel; do not route through implicated person. Protect against retaliation and restrict
+information to need-to-know.
+Investigation safeguards
+HR documents allegations, scope, impartial investigator, evidence, interviews, findings and action. Give each affected person a fair chance
+to respond. Share outcomes only as needed; absolute confidentiality cannot be promised. Interim measures should be non-punitive and
+reviewed regularly. Escalate threats, potential criminal conduct, regulator notice, material client impact, senior leader allegations, or credible
+retaliation risk to HR Director and Legal immediately.
+
+
+=== top-6 passages sent to Qwen ===
+1. chunk-008-8ce5e481fc | HR_Department.pdf | p.2
+[E1] p.2: HR reviews before issue  Do not use performance management to penalize protected leave, accommodation requests, discrimination complaints, or good-faith reporting Pause and contact HR if any such issue is raised 4 Employee relations and escalation Issue First contact / response Harassment, discrimination, reprisal, violence, or immediate safety concern Report to HR Director or any manager; urgent danger to emergency services/security HR acknowledges within 1 business day and starts prompt, impartial triage Alternate HR contact: General Counsel if HR is implicated Workplace conflict or conduct concern Manager or HR Business Partner HR assesses conflicts, safety, confidentiality and whether a formal investigation is needed Pay, benefits, time off, accommodation HR Service Desk; acknowledge in 2 business days, target resolution or update within 10 business days Complaint involving manager / retaliation concern HR Director or General Counsel; do not route through implicated person
+
+2. chunk-009-d70701df8c | HR_Department.pdf | p.2,3
+[E2] p.2: Pay, benefits, time off, accommodation HR Service Desk; acknowledge in 2 business days, target resolution or update within 10 business days Complaint involving manager / retaliation concern HR Director or General Counsel; do not route through implicated person Protect against retaliation and restrict information to need-to-know Investigation safeguards HR documents allegations, scope, impartial investigator, evidence, interviews, findings and action Give each affected person a fair chance to respond Share outcomes only as needed; absolute confidentiality cannot be promised Interim measures should be non-punitive and reviewed regularly Escalate threats, potential criminal conduct, regulator notice, material client impact, senior leader allegations, or credible retaliation risk to HR Director and Legal immediately
+[E3] p.3: NORTHSTAR ADVISORY GROUP / INTERNAL POLICY LIBRARY HR | Controlled copy in Local AI Demonstration Library 3 / 3 5
+
+3. chunk-007-ec2087f569 | HR_Department.pdf | p.2
+[E4] p.2: Pay decisions use approved budget and compensation bands Conversation / plan By March 15 Manager meets employee, shares review, listens, confirms goals and development actions; employee may add comments HR retains final record Performance concerns  Address ordinary gaps early with specific examples, expected standard, coaching, resources and a reasonable follow-up date Document the conversation and employee response  A formal improvement plan normally runs 30-60 days with weekly or biweekly check-ins, measurable expectations, support, and consequences if expectations are not met HR reviews before issue  Do not use performance management to penalize protected leave, accommodation requests, discrimination complaints, or good-faith reporting Pause and contact HR if any such issue is raised 4
+
+4. chunk-003-b0232f7958 | HR_Department.pdf | p.1
+[E5] p.1: Vacation is requested in the HR system at least 10 business days ahead where practicable; manager responds within 5 business days, considering coverage and fairness Carryover is limited to 5 days with manager approval and use by March 31; statutory entitlements follow applicable law Leave / benefit Internal process Sick / personal Notify manager before shift where practicable; record absence category without diagnosis HR may request legally permitted documentation after repeated or extended absence Protected/statutory leave Contact HR promptly; HR confirms eligibility, notice, documentation and job protection under the applicable province Do not require disclosure beyond what is needed to administer leave Accommodation Employee or representative may request at any time HR leads an individualized, confidential process; manager receives functional restrictions and arrangements, not unnecessary medical details Escalate undue-hardship questions to HR Director and Legal
+
+5. chunk-013-7a1cb030ea | HR_Department.pdf | p.3
+[E6] p.3: Litigation, complaint, audit, or investigation holds suspend deletion  Correct inaccurate records through HR; retain audit trail Do not promise deletion where law, contract, investigation, or hold requires retention 7 Decision rules for managers Do Do not Contact HR before changing pay, title, work location, schedule, status, or discipline Promise a leave outcome, benefit coverage, severance amount, or permanent accommodation without HR review Use approved, job-related criteria; record facts and date Keep informal “shadow files” or put sensitive details in calendar invites or team chat Escalate retaliation risk, safety threats, or a complaint involving your own conduct immediately Investigate a serious complaint alone or share details with uninvolved colleagues Use respectful, accessible communication and ask HR for support Treat a request for accommodation or protected leave as a performance or loyalty issue Administration HR Director owns this standard and reviews it annually
+
+6. chunk-010-3708405769 | HR_Department.pdf | p.2,3
+[E7] p.2: Escalate threats, potential criminal conduct, regulator notice, material client impact, senior leader allegations, or credible retaliation risk to HR Director and Legal immediately
+[E8] p.3: NORTHSTAR ADVISORY GROUP / INTERNAL POLICY LIBRARY HR | Controlled copy in Local AI Demonstration Library 3 / 3 5 Offboarding and access closure Trigger / timing Owner Control Notice received or termination decision HR + Legal Confirm agreement, statutory requirements, decision authority, final work date, rationale and any protected leave/accommodation context Involuntary exits require HR and Legal review before communicating At decision / immediately Manager + IT + Security Set access-revocation time proportionate to risk; disable accounts, tokens, VPN, client systems and building access at separation time For urgent risk, coordinate immediate restriction
+
+=== prompt ===
+SYSTEM:
+Answer the question directly in one short sentence using the supplied excerpts. Cite the single excerpt that most directly supports the answer. Use a second excerpt only if the answer needs both. If the excerpts do not directly answer the question, return 'I don't know.' and an empty evidence_ids list.
+
+USER:
+Question:
+How soon must HR acknowledge a report of harassment, discrimination, reprisal, violence, or an immediate safety concern?
+
+Evidence:
+[E1] HR reviews before issue  Do not use performance management to penalize protected leave, accommodation requests, discrimination complaints, or good-faith reporting Pause and contact HR if any such issue is raised 4 Employee relations and escalation Issue First contact / response Harassment, discrimination, reprisal, violence, or immediate safety concern Report to HR Director or any manager; urgent danger to emergency services/security HR acknowledges within 1 business day and starts prompt, impartial triage Alternate HR contact: General Counsel if HR is implicated Workplace conflict or conduct concern Manager or HR Business Partner HR assesses conflicts, safety, confidentiality and whether a formal investigation is needed Pay, benefits, time off, accommodation HR Service Desk; acknowledge in 2 business days, target resolution or update within 10 business days Complaint involving manager / retaliation concern HR Director or General Counsel; do not route through implicated person
+
+[E2] Pay, benefits, time off, accommodation HR Service Desk; acknowledge in 2 business days, target resolution or update within 10 business days Complaint involving manager / retaliation concern HR Director or General Counsel; do not route through implicated person Protect against retaliation and restrict information to need-to-know Investigation safeguards HR documents allegations, scope, impartial investigator, evidence, interviews, findings and action Give each affected person a fair chance to respond Share outcomes only as needed; absolute confidentiality cannot be promised Interim measures should be non-punitive and reviewed regularly Escalate threats, potential criminal conduct, regulator notice, material client impact, senior leader allegations, or credible retaliation risk to HR Director and Legal immediately
+
+[E3] NORTHSTAR ADVISORY GROUP / INTERNAL POLICY LIBRARY HR | Controlled copy in Local AI Demonstration Library 3 / 3 5
+
+[E4] Pay decisions use approved budget and compensation bands Conversation / plan By March 15 Manager meets employee, shares review, listens, confirms goals and development actions; employee may add comments HR retains final record Performance concerns  Address ordinary gaps early with specific examples, expected standard, coaching, resources and a reasonable follow-up date Document the conversation and employee response  A formal improvement plan normally runs 30-60 days with weekly or biweekly check-ins, measurable expectations, support, and consequences if expectations are not met HR reviews before issue  Do not use performance management to penalize protected leave, accommodation requests, discrimination complaints, or good-faith reporting Pause and contact HR if any such issue is raised 4
+
+[E5] Vacation is requested in the HR system at least 10 business days ahead where practicable; manager responds within 5 business days, considering coverage and fairness Carryover is limited to 5 days with manager approval and use by March 31; statutory entitlements follow applicable law Leave / benefit Internal process Sick / personal Notify manager before shift where practicable; record absence category without diagnosis HR may request legally permitted documentation after repeated or extended absence Protected/statutory leave Contact HR promptly; HR confirms eligibility, notice, documentation and job protection under the applicable province Do not require disclosure beyond what is needed to administer leave Accommodation Employee or representative may request at any time HR leads an individualized, confidential process; manager receives functional restrictions and arrangements, not unnecessary medical details Escalate undue-hardship questions to HR Director and Legal
+
+[E6] Litigation, complaint, audit, or investigation holds suspend deletion  Correct inaccurate records through HR; retain audit trail Do not promise deletion where law, contract, investigation, or hold requires retention 7 Decision rules for managers Do Do not Contact HR before changing pay, title, work location, schedule, status, or discipline Promise a leave outcome, benefit coverage, severance amount, or permanent accommodation without HR review Use approved, job-related criteria; record facts and date Keep informal “shadow files” or put sensitive details in calendar invites or team chat Escalate retaliation risk, safety threats, or a complaint involving your own conduct immediately Investigate a serious complaint alone or share details with uninvolved colleagues Use respectful, accessible communication and ask HR for support Treat a request for accommodation or protected leave as a performance or loyalty issue Administration HR Director owns this standard and reviews it annually
+
+[E7] Escalate threats, potential criminal conduct, regulator notice, material client impact, senior leader allegations, or credible retaliation risk to HR Director and Legal immediately
+
+[E8] NORTHSTAR ADVISORY GROUP / INTERNAL POLICY LIBRARY HR | Controlled copy in Local AI Demonstration Library 3 / 3 5 Offboarding and access closure Trigger / timing Owner Control Notice received or termination decision HR + Legal Confirm agreement, statutory requirements, decision authority, final work date, rationale and any protected leave/accommodation context Involuntary exits require HR and Legal review before communicating At decision / immediately Manager + IT + Security Set access-revocation time proportionate to risk; disable accounts, tokens, VPN, client systems and building access at separation time For urgent risk, coordinate immediate restriction

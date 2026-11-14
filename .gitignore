@@ -3,6 +3,10 @@
 
 # Generated embedding cache
 embeddings.json
+policy_embeddings.json
+
+# Fictional demo PDFs are part of this example
+!docs/**/*.pdf
 
 # Python
 __pycache__/

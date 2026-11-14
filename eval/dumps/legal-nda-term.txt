@@ -1,0 +1,105 @@
+=== expected page ===
+Legal_Department.pdf page 2
+NORTHSTAR ADVISORY GROUP  /  INTERNAL POLICY LIBRARY
+Legal  |  Controlled copy in Local AI Demonstration Library
+2  /  3
+2. Clause guidance and risk controls
+Use the current approved template from the contract repository. A clause marked “standard” below may be accepted only if unchanged;
+otherwise route the deviation to Legal.
+ Document
+Baseline / minimum controls
+Escalate when
+NDA
+Mutual where both parties disclose; define confidential
+information, permitted purpose, need-to-know access,
+safeguards and return/deletion. Default term 3 years; trade
+secrets protected while legally a trade secret. No public
+announcement without consent.
+Perpetual confidentiality for all information; residuals rights;
+compelled disclosure without notice where permitted; unusual
+non-solicit/non-compete; one-way NDA where Northstar also
+discloses.
+Client agreement
+Attach statement of work with deliverables, assumptions,
+acceptance method, fees, change control, client dependencies
+and named business owner. Invoice monthly; payment net 30.
+Background IP stays with owner; client receives defined license
+to paid deliverables.
+Unlimited rework/acceptance discretion; payment contingent on
+third party; client ownership of tools/methods; broad audit,
+benchmark, or use of Northstar name; service credits above 10%
+of fees.
+Vendor agreement
+Confirm business owner, procurement selection, security due
+diligence, insurance, service levels, subcontractors, data
+location, breach notice and exit/data return. Seek termination for
+convenience on 30 days.
+Vendor processes personal/sensitive data, hosts production
+systems, has privileged access, or uses data to train models;
+vendor liability cap below 12 months fees for its
+confidentiality/security breach.
+3. Confidentiality and data protection
+ Classify information as Public, Internal, Confidential, or Restricted. Client records, employee files, credentials, security findings, and
+non-public financial information are at least Confidential; sensitive personal information and authentication secrets are Restricted.
+ Share only for a documented business purpose, with authorized recipients, approved storage, and least-privilege access. Use
+company-managed encrypted systems; do not place Confidential or Restricted data in personal email, consumer file sharing, or unapproved
+AI services.
+ Before a vendor or client receives personal information, confirm contract safeguards, purpose limitation, retention/deletion, incident notice,
+access controls, subprocessors, and storage/access locations with Privacy and Security.
+ Report suspected loss, misdirection, unauthorized access, or disclosure immediately to Security and Privacy; preserve evidence and do
+not notify an external party independently. Legal coordinates privilege, contractual notice, and regulator/client response.
+4. NDA/vendor/client quick path
+NDA: use LEG-NDA template; Legal review only needed for deviations. Vendor: Procurement owner + Security questionnaire where
+systems/data are involved + Legal approval. Client: Legal review and budget/engagement approval before proposal terms become
+binding. Store signed agreement, approvals, and obligation dates in the restricted contract repository; access by matter team and
+Legal.
+Retention and related policies
+Legal retains executed contracts and approval records for 7 years after expiry, subject to a legal hold. Do not delete held records. Privacy incidents follow the
+Security Incident Response procedure. For tax-related contract terms, consult TAX-02; for employee confidentiality and access removal, consult HR-03.
+
+
+=== top-6 passages sent to Qwen ===
+1. chunk-005-d19d35b72e | Legal_Department.pdf | p.2
+[E1] p.2: A clause marked “standard” below may be accepted only if unchanged; otherwise route the deviation to Legal Document Baseline / minimum controls Escalate when NDA Mutual where both parties disclose; define confidential information, permitted purpose, need-to-know access, safeguards and return/deletion Default term 3 years; trade secrets protected while legally a trade secret No public announcement without consent Perpetual confidentiality for all information; residuals rights; compelled disclosure without notice where permitted; unusual non-solicit/non-compete; one-way NDA where Northstar also discloses Client agreement Attach statement of work with deliverables, assumptions, acceptance method, fees, change control, client dependencies and named business owner Invoice monthly; payment net 30 Background IP stays with owner; client receives defined license to paid deliverables
+
+2. chunk-009-3ae196012e | Legal_Department.pdf | p.2,3
+[E2] p.2: Legal coordinates privilege, contractual notice, and regulator/client response 4 NDA/vendor/client quick path NDA: use LEG-NDA template; Legal review only needed for deviations Vendor: Procurement owner + Security questionnaire where systems/data are involved + Legal approval Client: Legal review and budget/engagement approval before proposal terms become binding Store signed agreement, approvals, and obligation dates in the restricted contract repository; access by matter team and Legal Retention and related policies Legal retains executed contracts and approval records for 7 years after expiry, subject to a legal hold Do not delete held records Privacy incidents follow the Security Incident Response procedure For tax-related contract terms, consult TAX-02; for employee confidentiality and access removal, consult HR-03
+[E3] p.3: NORTHSTAR ADVISORY GROUP / INTERNAL POLICY LIBRARY Legal | Controlled copy in Local AI Demonstration Library 3 / 3 5
+
+3. chunk-008-c7f25d7402 | Legal_Department.pdf | p.2
+[E4] p.2:  Share only for a documented business purpose, with authorized recipients, approved storage, and least-privilege access Use company-managed encrypted systems; do not place Confidential or Restricted data in personal email, consumer file sharing, or unapproved AI services  Before a vendor or client receives personal information, confirm contract safeguards, purpose limitation, retention/deletion, incident notice, access controls, subprocessors, and storage/access locations with Privacy and Security  Report suspected loss, misdirection, unauthorized access, or disclosure immediately to Security and Privacy; preserve evidence and do not notify an external party independently Legal coordinates privilege, contractual notice, and regulator/client response 4 NDA/vendor/client quick path NDA: use LEG-NDA template; Legal review only needed for deviations Vendor: Procurement owner + Security questionnaire where systems/data are involved + Legal approval
+
+4. chunk-004-ac6d94d453 | Legal_Department.pdf | p.1,2
+[E5] p.1: Any uncapped liability, broad indemnity, consequential-loss exposure, IP assignment, governing law outside Canada, or material regulatory commitment General Counsel and CFO; CEO for uncapped exposure or strategic exclusivity No business override Any material personal information, sensitive client data, or cross-border hosting/access Privacy lead and Security lead in addition to Legal; complete privacy/security assessment
+[E6] p.2: NORTHSTAR ADVISORY GROUP / INTERNAL POLICY LIBRARY Legal | Controlled copy in Local AI Demonstration Library 2 / 3 2 Clause guidance and risk controls Use the current approved template from the contract repository A clause marked “standard” below may be accepted only if unchanged; otherwise route the deviation to Legal Document Baseline / minimum controls Escalate when NDA Mutual where both parties disclose; define confidential information, permitted purpose, need-to-know access, safeguards and return/deletion
+
+5. chunk-001-a4836da5b0 | Legal_Department.pdf | p.1
+[E7] p.1: The firm provides management, data, and finance consulting Annual revenue is approximately CAD 32 million; engagements are typically fixed-fee or time-and-materials This standard governs staff, officers, and approved contractors It is synthetic demonstration material 1 Review and approval workflow No employee may sign, accept online, or make a binding commitment for Northstar unless listed in the current Delegation of Authority register Legal review is required before signature for every client agreement, vendor agreement, NDA with non-standard terms, amendment, renewal with changed pricing/scope, and any document imposing data, IP, indemnity, exclusivity, or service-level obligations Stage Responsible / timing Required evidence 1 Intake Business sponsor submits contract and completed intake form to Legal at least 10 business days before target signature Counterparty, purpose, value, term, data types, delivery owner, requested date; attach all schedules 2
+
+6. chunk-000-e6af0ea8c6 | HR_Department.pdf | p.1
+[E8] p.1: NORTHSTAR ADVISORY GROUP / INTERNAL POLICY LIBRARY HR | Controlled copy in Local AI Demonstration Library 1 / 3 HUMAN RESOURCES People operations, leave & employee relations standard DOCUMENT CONTROL Owner Director, People & Culture Policy ID / version HR-03 | 1.0 Effective date 1 April 2026 Classification Confidential - HR Restricted Applies to Northstar Advisory Group, 150 employees; Toronto HQ and remote staff Purpose and workforce context Northstar Advisory Group is a fictional Canadian professional-services firm with 150 employees, Toronto headquarters, and remote staff It provides management, data, and finance consulting with approximately CAD 32 million annual revenue HR records are confidential and accessible only to authorized HR staff and managers for legitimate work purposes This synthetic standard applies to employees; statutory rights and the employment agreement prevail where they provide greater protection 1
+
+=== prompt ===
+SYSTEM:
+Answer the question directly in one short sentence using the supplied excerpts. Cite the single excerpt that most directly supports the answer. Use a second excerpt only if the answer needs both. If the excerpts do not directly answer the question, return 'I don't know.' and an empty evidence_ids list.
+
+USER:
+Question:
+What is the default term of an NDA?
+
+Evidence:
+[E1] A clause marked “standard” below may be accepted only if unchanged; otherwise route the deviation to Legal Document Baseline / minimum controls Escalate when NDA Mutual where both parties disclose; define confidential information, permitted purpose, need-to-know access, safeguards and return/deletion Default term 3 years; trade secrets protected while legally a trade secret No public announcement without consent Perpetual confidentiality for all information; residuals rights; compelled disclosure without notice where permitted; unusual non-solicit/non-compete; one-way NDA where Northstar also discloses Client agreement Attach statement of work with deliverables, assumptions, acceptance method, fees, change control, client dependencies and named business owner Invoice monthly; payment net 30 Background IP stays with owner; client receives defined license to paid deliverables
+
+[E2] Legal coordinates privilege, contractual notice, and regulator/client response 4 NDA/vendor/client quick path NDA: use LEG-NDA template; Legal review only needed for deviations Vendor: Procurement owner + Security questionnaire where systems/data are involved + Legal approval Client: Legal review and budget/engagement approval before proposal terms become binding Store signed agreement, approvals, and obligation dates in the restricted contract repository; access by matter team and Legal Retention and related policies Legal retains executed contracts and approval records for 7 years after expiry, subject to a legal hold Do not delete held records Privacy incidents follow the Security Incident Response procedure For tax-related contract terms, consult TAX-02; for employee confidentiality and access removal, consult HR-03
+
+[E3] NORTHSTAR ADVISORY GROUP / INTERNAL POLICY LIBRARY Legal | Controlled copy in Local AI Demonstration Library 3 / 3 5
+
+[E4]  Share only for a documented business purpose, with authorized recipients, approved storage, and least-privilege access Use company-managed encrypted systems; do not place Confidential or Restricted data in personal email, consumer file sharing, or unapproved AI services  Before a vendor or client receives personal information, confirm contract safeguards, purpose limitation, retention/deletion, incident notice, access controls, subprocessors, and storage/access locations with Privacy and Security  Report suspected loss, misdirection, unauthorized access, or disclosure immediately to Security and Privacy; preserve evidence and do not notify an external party independently Legal coordinates privilege, contractual notice, and regulator/client response 4 NDA/vendor/client quick path NDA: use LEG-NDA template; Legal review only needed for deviations Vendor: Procurement owner + Security questionnaire where systems/data are involved + Legal approval
+
+[E5] Any uncapped liability, broad indemnity, consequential-loss exposure, IP assignment, governing law outside Canada, or material regulatory commitment General Counsel and CFO; CEO for uncapped exposure or strategic exclusivity No business override Any material personal information, sensitive client data, or cross-border hosting/access Privacy lead and Security lead in addition to Legal; complete privacy/security assessment
+
+[E6] NORTHSTAR ADVISORY GROUP / INTERNAL POLICY LIBRARY Legal | Controlled copy in Local AI Demonstration Library 2 / 3 2 Clause guidance and risk controls Use the current approved template from the contract repository A clause marked “standard” below may be accepted only if unchanged; otherwise route the deviation to Legal Document Baseline / minimum controls Escalate when NDA Mutual where both parties disclose; define confidential information, permitted purpose, need-to-know access, safeguards and return/deletion
+
+[E7] The firm provides management, data, and finance consulting Annual revenue is approximately CAD 32 million; engagements are typically fixed-fee or time-and-materials This standard governs staff, officers, and approved contractors It is synthetic demonstration material 1 Review and approval workflow No employee may sign, accept online, or make a binding commitment for Northstar unless listed in the current Delegation of Authority register Legal review is required before signature for every client agreement, vendor agreement, NDA with non-standard terms, amendment, renewal with changed pricing/scope, and any document imposing data, IP, indemnity, exclusivity, or service-level obligations Stage Responsible / timing Required evidence 1 Intake Business sponsor submits contract and completed intake form to Legal at least 10 business days before target signature Counterparty, purpose, value, term, data types, delivery owner, requested date; attach all schedules 2
+
+[E8] NORTHSTAR ADVISORY GROUP / INTERNAL POLICY LIBRARY HR | Controlled copy in Local AI Demonstration Library 1 / 3 HUMAN RESOURCES People operations, leave & employee relations standard DOCUMENT CONTROL Owner Director, People & Culture Policy ID / version HR-03 | 1.0 Effective date 1 April 2026 Classification Confidential - HR Restricted Applies to Northstar Advisory Group, 150 employees; Toronto HQ and remote staff Purpose and workforce context Northstar Advisory Group is a fictional Canadian professional-services firm with 150 employees, Toronto headquarters, and remote staff It provides management, data, and finance consulting with approximately CAD 32 million annual revenue HR records are confidential and accessible only to authorized HR staff and managers for legitimate work purposes This synthetic standard applies to employees; statutory rights and the employment agreement prevail where they provide greater protection 1

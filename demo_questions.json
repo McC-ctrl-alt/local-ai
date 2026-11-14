@@ -1,0 +1,27 @@
+[
+  {
+    "id": "routed",
+    "role": "tax_analyst",
+    "question": "When is the second quarterly estimated tax voucher due?"
+  },
+  {
+    "id": "routed-hr",
+    "role": "hr_partner",
+    "question": "How many weeks of paid parental leave does an employee with 12 months of continuous service receive?"
+  },
+  {
+    "id": "cross-dept",
+    "role": "counsel",
+    "question": "Using the contract review standard, how many business days do we have to review a standard vendor contract, and what percentage of a client business meal is deductible?"
+  },
+  {
+    "id": "refusal",
+    "role": "tax_analyst",
+    "question": "What marking must the subject line include when an email seeks legal advice?"
+  },
+  {
+    "id": "unknown",
+    "role": "counsel",
+    "question": "How many years must the firm keep litigation hold notices?"
+  }
+]
