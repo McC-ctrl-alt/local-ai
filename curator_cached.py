@@ -102,6 +102,11 @@ def chunk_contains_quote(chunk, quote, page_number=None):
             continue
         if normalized_quote in normalize_text(segment["text"]):
             return True
+        source_path = chunk.get("source_path")
+        page_text = pdf_page_text(source_path, segment["page_number"]) if source_path else ""
+        cleaned = normalize_text(clean_passage_text(segment["text"], page_text))
+        if cleaned and normalized_quote in cleaned:
+            return True
     return False
 
 
@@ -169,6 +174,106 @@ def show_ranking(title, ranked_chunks, reranked=False):
         print(f"{rank}. {chunk['chunk_id']} | Pages: {pages} | {score_text}")
 
 
+_PDF_READERS = {}
+_PAGE_TEXT = {}
+
+
+def pdf_page_text(pdf_path, page_number):
+    """Original page text, used only to restore punctuation for the answer."""
+    path = str(pdf_path)
+    cached = _PAGE_TEXT.setdefault(path, {})
+    if page_number in cached:
+        return cached[page_number]
+    try:
+        reader = _PDF_READERS.get(path)
+        if reader is None:
+            reader = PdfReader(path)
+            _PDF_READERS[path] = reader
+        if page_number < 1 or page_number > len(reader.pages):
+            text = ""
+        else:
+            text = reader.pages[page_number - 1].extract_text() or ""
+    except (OSError, PdfReadError):
+        text = ""
+    cached[page_number] = text
+    return text
+
+
+def sentence_pieces(page_text):
+    """Same '. ' split as chunking, remembering which periods the split removed.
+
+    A period that belongs to a heading line such as '6. HR records' is marked
+    so the answer text can drop that number without dropping sentence periods.
+    """
+    original = page_text or ""
+    flat = original.replace("\n", " ")
+    parts = flat.split(". ")
+    last = len(parts) - 1
+    pieces = []
+    cursor = 0
+    for index, part in enumerate(parts):
+        lost_period = index < last
+        end = cursor + len(part)
+        heading_period = False
+        if lost_period and original[end:end + 2] == ". ":
+            number_start = end
+            while number_start > 0 and original[number_start - 1].isdigit():
+                number_start -= 1
+            number = original[number_start:end]
+            line_start = original.rfind("\n", 0, number_start) + 1
+            if number and len(number) <= 2 and original[line_start:number_start].strip() == "":
+                heading_period = True
+        text = part.strip()
+        if text:
+            pieces.append((text, lost_period, heading_period))
+        cursor = end + (2 if lost_period else 0)
+    return pieces
+
+
+def find_sentence_span(pieces, collapsed):
+    norms = [" ".join(text.split()) for text, _lost_period, _heading in pieces]
+    for start in range(len(norms)):
+        acc = []
+        for end in range(start, len(norms)):
+            acc.append(norms[end])
+            joined = " ".join(acc)
+            if joined == collapsed:
+                return start, end + 1
+            if len(joined) > len(collapsed):
+                break
+    return None
+
+
+def clean_passage_text(segment_text, page_text):
+    """Punctuation for the Qwen prompt. Retrieval text stays unchanged.
+
+    Periods, colons, and semicolons stay. A heading number from a line such as
+    '6. HR records' is dropped, including when it was glued to the line above.
+    """
+    collapsed = " ".join(str(segment_text).split())
+    if not page_text:
+        return collapsed
+    pieces = sentence_pieces(page_text)
+    span = find_sentence_span(pieces, collapsed)
+    if span is None:
+        return collapsed
+    start, end = span
+    kept = []
+    for text, lost_period, heading_period in pieces[start:end]:
+        body = " ".join(text.split())
+        if heading_period:
+            tokens = body.split()
+            if tokens and tokens[-1].isdigit() and len(tokens[-1]) <= 2:
+                body = " ".join(tokens[:-1])
+                lost_period = False
+        if not body:
+            continue
+        if lost_period and not body.endswith("."):
+            body += "."
+        kept.append(body)
+    return " ".join(kept)
+
+
 def select_context(ranked_chunks, reranked=False):
     selected_chunks = [
         result[3] if reranked else result[2]
@@ -177,8 +282,12 @@ def select_context(ranked_chunks, reranked=False):
     evidence_by_id = {}
     seen = set()
     for chunk in selected_chunks:
+        source_path = chunk.get("source_path")
         for segment in chunk["page_segments"]:
-            quote = " ".join(segment["text"].split())
+            page_text = ""
+            if source_path:
+                page_text = pdf_page_text(source_path, segment["page_number"])
+            quote = clean_passage_text(segment["text"], page_text)
             page_number = segment["page_number"]
             key = (page_number, quote.casefold())
             if key in seen or not any(character.isalpha() for character in quote):
@@ -269,9 +378,15 @@ def load_or_build_index(pdf_path):
     index = read_index(cache_path)
     signature = file_signature(pdf_path)
 
+    def bind_source(index):
+        resolved = str(pdf_path.resolve())
+        for chunk in index["chunks"]:
+            chunk["source_path"] = resolved
+        return index
+
     if index.get("stat") == signature:
         print(f"Index: reused {len(index['chunks'])} passages from {pdf_path.name}.")
-        return index
+        return bind_source(index)
 
     contents = pdf_path.read_bytes()
     if file_signature(pdf_path) != signature:
@@ -282,7 +397,7 @@ def load_or_build_index(pdf_path):
         index["stat"] = signature
         save_index(cache_path, index)
         print(f"Index: reused {len(index['chunks'])} passages from {pdf_path.name}.")
-        return index
+        return bind_source(index)
 
     chunks = build_page_aware_chunks(PdfReader(BytesIO(contents)))
     if not chunks:
@@ -298,7 +413,7 @@ def load_or_build_index(pdf_path):
     }
     save_index(cache_path, index)
     print(f"Index: built {len(chunks)} passages and saved them in {CACHE_DIR.name}/.")
-    return index
+    return bind_source(index)
 
 
 def list_pdfs(folder):

@@ -1,0 +1,19 @@
+correct: 5
+partial: 1
+wrong: 3
+correct-IDK: 1
+citation accuracy: 8/10 (80%)
+avg seconds: search 0.1, rerank 2.7, answer 12.1, total 15.0
+hr-vacation-entitlement: Time: Search 0.8 seconds, Rerank: 2.7 seconds, Answer: 15.2 seconds
+hr-benefits-enrollment: Time: Search 0.1 seconds, Rerank: 3.5 seconds, Answer: 14.5 seconds
+hr-personnel-retention: Time: Search 0.1 seconds, Rerank: 2.8 seconds, Answer: 11.3 seconds
+tax-ontario-hst: Time: Search 0.1 seconds, Rerank: 2.6 seconds, Answer: 11.0 seconds
+legal-approval-band: Time: Search 0.1 seconds, Rerank: 2.3 seconds, Answer: 12.5 seconds
+legal-nda-term: Time: Search 0.1 seconds, Rerank: 2.9 seconds, Answer: 11.6 seconds
+tax-return-due: Time: Search 0.1 seconds, Rerank: 2.5 seconds, Answer: 10.5 seconds
+hr-harassment-ack: Time: Search 0.1 seconds, Rerank: 1.8 seconds, Answer: 11.7 seconds
+hr-rrsp-match: Time: Search 0.1 seconds, Rerank: 2.9 seconds, Answer: 11.4 seconds
+hr-parental-weeks: Time: Search 0.1 seconds, Rerank: 3.1 seconds, Answer: 11.4 seconds
+needs human scoring:
+- hr-vacation-entitlement [wrong] The standard vacation entitlement for a full year is 20 working days.
+- tax-ontario-hst [partial] 13%
