@@ -38,3 +38,19 @@ Regenerate the six PDFs with `python3 scripts/build_docs.py`. Checks that do not
 ```bash
 python3 -m unittest discover -s tests -t . -v
 ```
+
+## Cached folder search on an M1 Air (8 GB)
+
+`curator_cached.py` indexes every PDF in a folder, one cache file per PDF. It keeps cosine similarity to the top 10 passages, reranks those 10 with the CPU cross-encoder, and makes one `qwen2.5:3b` call on the top 6. Each answer prints search, rerank, and answer times, and cites the file and page. `qwen2.5:3b` and `nomic-embed-text` are the models that fit this machine. The reranker stays on CPU (`cross-encoder/ms-marco-MiniLM-L6-v2`).
+
+```bash
+python3 -m venv .venv
+source .venv/bin/activate
+pip install -r requirements.txt
+ollama pull nomic-embed-text
+ollama pull qwen2.5:3b
+python3 curator_cached.py --folder knowledge_test --question "What is the standard vacation entitlement for a full year?"
+python3 eval/run_eval.py
+```
+
+`--folder` defaults to `knowledge_test/` (HR, Legal, and Tax). Pass `--pdf` to index one file instead. `eval/run_eval.py` reads `eval/questions.yaml` and writes `eval/results.csv` plus `eval/summary.txt`.

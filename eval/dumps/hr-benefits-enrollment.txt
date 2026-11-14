@@ -1,0 +1,118 @@
+=== expected page ===
+HR_Department.pdf page 1
+NORTHSTAR ADVISORY GROUP  /  INTERNAL POLICY LIBRARY
+HR  |  Controlled copy in Local AI Demonstration Library
+1  /  3
+HUMAN RESOURCES
+People operations, leave & employee relations standard
+DOCUMENT CONTROL
+Owner
+Director, People & Culture
+Policy ID / version
+HR-03 | 1.0
+Effective date
+1 April 2026
+Classification
+Confidential - HR Restricted
+Applies to
+Northstar Advisory Group, 150 employees; Toronto HQ and remote staff
+Purpose and workforce context
+Northstar Advisory Group is a fictional Canadian professional-services firm with 150 employees, Toronto headquarters, and remote staff. It
+provides management, data, and finance consulting with approximately CAD 32 million annual revenue. HR records are confidential and
+accessible only to authorized HR staff and managers for legitimate work purposes. This synthetic standard applies to employees; statutory
+rights and the employment agreement prevail where they provide greater protection.
+1. Onboarding
+ When
+Owner
+Required action
+Before start
+HR + hiring manager
+Approved requisition and offer; signed employment agreement; identity/right-to-work and role
+qualifications verified; province of employment recorded. Collect only required personal data.
+Day 1
+HR + IT + manager
+Create least-privilege account, MFA and equipment issue record; provide policy, safety, privacy,
+expense and security orientation; explain reporting channels and role expectations.
+Week 1
+Manager
+Confirm goals, client assignment, required training, accessibility/accommodation needs, and
+30/60/90-day check-ins.
+By day 30
+HR
+Benefits enrollment instructions and plan documents provided; confirm emergency contact, payroll tax
+forms and direct deposit in secure HR system.
+Day 90
+Manager + HR
+Probation checkpoint documented; confirm fit, support plan or written extension/decision consistent with
+agreement and applicable law.
+2. Vacation, leave and benefits
+Vacation year is January 1 to December 31. Standard entitlement is 15 working days per full year, prorated in the first year; after five
+completed years, 20 days. Statutory vacation pay and minimums are never reduced. Vacation is requested in the HR system at least 10
+business days ahead where practicable; manager responds within 5 business days, considering coverage and fairness. Carryover is limited
+to 5 days with manager approval and use by March 31; statutory entitlements follow applicable law.
+ Leave / benefit
+Internal process
+Sick / personal
+Notify manager before shift where practicable; record absence category without diagnosis. HR may request legally permitted
+documentation after repeated or extended absence.
+Protected/statutory
+leave
+Contact HR promptly; HR confirms eligibility, notice, documentation and job protection under the applicable province. Do not
+require disclosure beyond what is needed to administer leave.
+Accommodation
+Employee or representative may request at any time. HR leads an individualized, confidential process; manager receives
+functional restrictions and arrangements, not unnecessary medical details. Escalate undue-hardship questions to HR Director
+and Legal.
+Benefits
+Eligible regular employees scheduled 30+ hours/week enroll from first of month after 30 days, subject to plan terms. Employer
+pays 75% of standard health/dental premium; employee share via payroll. Life/disability coverage follows insurer terms.
+Parental / family
+HR provides applicable statutory and plan information; employee gives notice as required by law. Coordinate coverage and
+return-to-work plan without discouraging leave.
+Related controls
+Employee agreement, payroll, records retention, and access removal are controlled; see Legal policy LEG-04 for contract/confidentiality rules and Tax policy
+TAX-02 for payroll tax records and reimbursement documentation.
+
+
+=== top-6 passages sent to Qwen ===
+1. chunk-004-f8ce9294aa | HR_Department.pdf | p.1
+[E1] p.1: Accommodation Employee or representative may request at any time HR leads an individualized, confidential process; manager receives functional restrictions and arrangements, not unnecessary medical details Escalate undue-hardship questions to HR Director and Legal Benefits Eligible regular employees scheduled 30+ hours/week enroll from first of month after 30 days, subject to plan terms Employer pays 75% of standard health/dental premium; employee share via payroll Life/disability coverage follows insurer terms Parental / family HR provides applicable statutory and plan information; employee gives notice as required by law Coordinate coverage and return-to-work plan without discouraging leave Related controls Employee agreement, payroll, records retention, and access removal are controlled; see Legal policy LEG-04 for contract/confidentiality rules and Tax policy TAX-02 for payroll tax records and reimbursement documentation
+
+2. chunk-002-92c25b2939 | HR_Department.pdf | p.1
+[E2] p.1: Week 1 Manager Confirm goals, client assignment, required training, accessibility/accommodation needs, and 30/60/90-day check-ins By day 30 HR Benefits enrollment instructions and plan documents provided; confirm emergency contact, payroll tax forms and direct deposit in secure HR system Day 90 Manager + HR Probation checkpoint documented; confirm fit, support plan or written extension/decision consistent with agreement and applicable law 2 Vacation, leave and benefits Vacation year is January 1 to December 31 Standard entitlement is 15 working days per full year, prorated in the first year; after five completed years, 20 days Statutory vacation pay and minimums are never reduced Vacation is requested in the HR system at least 10 business days ahead where practicable; manager responds within 5 business days, considering coverage and fairness Carryover is limited to 5 days with manager approval and use by March 31; statutory entitlements follow applicable law
+
+3. chunk-003-b0232f7958 | HR_Department.pdf | p.1
+[E3] p.1: Vacation is requested in the HR system at least 10 business days ahead where practicable; manager responds within 5 business days, considering coverage and fairness Carryover is limited to 5 days with manager approval and use by March 31; statutory entitlements follow applicable law Leave / benefit Internal process Sick / personal Notify manager before shift where practicable; record absence category without diagnosis HR may request legally permitted documentation after repeated or extended absence Protected/statutory leave Contact HR promptly; HR confirms eligibility, notice, documentation and job protection under the applicable province Do not require disclosure beyond what is needed to administer leave Accommodation Employee or representative may request at any time HR leads an individualized, confidential process; manager receives functional restrictions and arrangements, not unnecessary medical details Escalate undue-hardship questions to HR Director and Legal
+
+4. chunk-007-ec2087f569 | HR_Department.pdf | p.2
+[E4] p.2: Pay decisions use approved budget and compensation bands Conversation / plan By March 15 Manager meets employee, shares review, listens, confirms goals and development actions; employee may add comments HR retains final record Performance concerns  Address ordinary gaps early with specific examples, expected standard, coaching, resources and a reasonable follow-up date Document the conversation and employee response  A formal improvement plan normally runs 30-60 days with weekly or biweekly check-ins, measurable expectations, support, and consequences if expectations are not met HR reviews before issue  Do not use performance management to penalize protected leave, accommodation requests, discrimination complaints, or good-faith reporting Pause and contact HR if any such issue is raised 4
+
+5. chunk-001-a622d464a4 | HR_Department.pdf | p.1
+[E5] p.1: HR records are confidential and accessible only to authorized HR staff and managers for legitimate work purposes This synthetic standard applies to employees; statutory rights and the employment agreement prevail where they provide greater protection 1 Onboarding When Owner Required action Before start HR + hiring manager Approved requisition and offer; signed employment agreement; identity/right-to-work and role qualifications verified; province of employment recorded Collect only required personal data Day 1 HR + IT + manager Create least-privilege account, MFA and equipment issue record; provide policy, safety, privacy, expense and security orientation; explain reporting channels and role expectations Week 1 Manager Confirm goals, client assignment, required training, accessibility/accommodation needs, and 30/60/90-day check-ins
+
+6. chunk-010-9b7b54fc0c | Tax_Department.pdf | p.2,3
+[E6] p.2: Employees do not approve their own expenses See HR-03 for benefit/payroll handling and LEG-04 for vendor/client contract controls
+[E7] p.3: NORTHSTAR ADVISORY GROUP / INTERNAL POLICY LIBRARY Tax | Controlled copy in Local AI Demonstration Library 3 / 3 4 Tax documentation and retention Record class Minimum internal retention Owner / storage T2 returns, tax provision, elections, notices, assessment and objection correspondence 7 years after relevant tax year, or longer where statute, dispute or adviser directs Tax repository; Director, Finance & Tax GST/HST returns, ledgers, invoices, receipts, import/export support, ITC calculations 7 years after end of relevant reporting period Finance archive; Controller Payroll remittances, T4/T4A slips and supporting payroll register 7 years after year-end, subject to longer statutory or legal hold requirements Restricted payroll system; Payroll lead Fixed asset invoices, continuity and disposition support 7 years after disposal or end of related tax year, whichever is later under internal policy Fixed asset subledger; Controller Expense claims and approvals 7 years after fiscal year-end Expense system; Finance Retention is an internal minimum, not a substitute for statutory rules
+
+=== prompt ===
+SYSTEM:
+Answer the question directly in one short sentence using the supplied excerpts. Cite the single excerpt that most directly supports the answer. Use a second excerpt only if the answer needs both. If the excerpts do not directly answer the question, return 'I don't know.' and an empty evidence_ids list.
+
+USER:
+Question:
+When do eligible regular employees enroll in benefits, and what share of the standard health and dental premium does the employer pay?
+
+Evidence:
+[E1] Accommodation Employee or representative may request at any time HR leads an individualized, confidential process; manager receives functional restrictions and arrangements, not unnecessary medical details Escalate undue-hardship questions to HR Director and Legal Benefits Eligible regular employees scheduled 30+ hours/week enroll from first of month after 30 days, subject to plan terms Employer pays 75% of standard health/dental premium; employee share via payroll Life/disability coverage follows insurer terms Parental / family HR provides applicable statutory and plan information; employee gives notice as required by law Coordinate coverage and return-to-work plan without discouraging leave Related controls Employee agreement, payroll, records retention, and access removal are controlled; see Legal policy LEG-04 for contract/confidentiality rules and Tax policy TAX-02 for payroll tax records and reimbursement documentation
+
+[E2] Week 1 Manager Confirm goals, client assignment, required training, accessibility/accommodation needs, and 30/60/90-day check-ins By day 30 HR Benefits enrollment instructions and plan documents provided; confirm emergency contact, payroll tax forms and direct deposit in secure HR system Day 90 Manager + HR Probation checkpoint documented; confirm fit, support plan or written extension/decision consistent with agreement and applicable law 2 Vacation, leave and benefits Vacation year is January 1 to December 31 Standard entitlement is 15 working days per full year, prorated in the first year; after five completed years, 20 days Statutory vacation pay and minimums are never reduced Vacation is requested in the HR system at least 10 business days ahead where practicable; manager responds within 5 business days, considering coverage and fairness Carryover is limited to 5 days with manager approval and use by March 31; statutory entitlements follow applicable law
+
+[E3] Vacation is requested in the HR system at least 10 business days ahead where practicable; manager responds within 5 business days, considering coverage and fairness Carryover is limited to 5 days with manager approval and use by March 31; statutory entitlements follow applicable law Leave / benefit Internal process Sick / personal Notify manager before shift where practicable; record absence category without diagnosis HR may request legally permitted documentation after repeated or extended absence Protected/statutory leave Contact HR promptly; HR confirms eligibility, notice, documentation and job protection under the applicable province Do not require disclosure beyond what is needed to administer leave Accommodation Employee or representative may request at any time HR leads an individualized, confidential process; manager receives functional restrictions and arrangements, not unnecessary medical details Escalate undue-hardship questions to HR Director and Legal
+
+[E4] Pay decisions use approved budget and compensation bands Conversation / plan By March 15 Manager meets employee, shares review, listens, confirms goals and development actions; employee may add comments HR retains final record Performance concerns  Address ordinary gaps early with specific examples, expected standard, coaching, resources and a reasonable follow-up date Document the conversation and employee response  A formal improvement plan normally runs 30-60 days with weekly or biweekly check-ins, measurable expectations, support, and consequences if expectations are not met HR reviews before issue  Do not use performance management to penalize protected leave, accommodation requests, discrimination complaints, or good-faith reporting Pause and contact HR if any such issue is raised 4
+
+[E5] HR records are confidential and accessible only to authorized HR staff and managers for legitimate work purposes This synthetic standard applies to employees; statutory rights and the employment agreement prevail where they provide greater protection 1 Onboarding When Owner Required action Before start HR + hiring manager Approved requisition and offer; signed employment agreement; identity/right-to-work and role qualifications verified; province of employment recorded Collect only required personal data Day 1 HR + IT + manager Create least-privilege account, MFA and equipment issue record; provide policy, safety, privacy, expense and security orientation; explain reporting channels and role expectations Week 1 Manager Confirm goals, client assignment, required training, accessibility/accommodation needs, and 30/60/90-day check-ins
+
+[E6] Employees do not approve their own expenses See HR-03 for benefit/payroll handling and LEG-04 for vendor/client contract controls
+
+[E7] NORTHSTAR ADVISORY GROUP / INTERNAL POLICY LIBRARY Tax | Controlled copy in Local AI Demonstration Library 3 / 3 4 Tax documentation and retention Record class Minimum internal retention Owner / storage T2 returns, tax provision, elections, notices, assessment and objection correspondence 7 years after relevant tax year, or longer where statute, dispute or adviser directs Tax repository; Director, Finance & Tax GST/HST returns, ledgers, invoices, receipts, import/export support, ITC calculations 7 years after end of relevant reporting period Finance archive; Controller Payroll remittances, T4/T4A slips and supporting payroll register 7 years after year-end, subject to longer statutory or legal hold requirements Restricted payroll system; Payroll lead Fixed asset invoices, continuity and disposition support 7 years after disposal or end of related tax year, whichever is later under internal policy Fixed asset subledger; Controller Expense claims and approvals 7 years after fiscal year-end Expense system; Finance Retention is an internal minimum, not a substitute for statutory rules

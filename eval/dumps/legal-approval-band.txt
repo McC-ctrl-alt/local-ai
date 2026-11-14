@@ -1,0 +1,122 @@
+=== expected page ===
+Legal_Department.pdf page 1
+NORTHSTAR ADVISORY GROUP  /  INTERNAL POLICY LIBRARY
+Legal  |  Controlled copy in Local AI Demonstration Library
+1  /  3
+LEGAL DEPARTMENT
+Contracting, confidentiality & information handling standard
+DOCUMENT CONTROL
+Owner
+General Counsel
+Policy ID / version
+LEG-04 | 1.0
+Effective date
+1 April 2026
+Classification
+Internal - Need to Know
+Applies to
+Northstar Advisory Group, 150 employees; Toronto HQ and remote staff
+Purpose and operating context
+Northstar Advisory Group (Northstar) is a fictional Canadian professional-services firm with 150 employees, headquartered in Toronto and
+serving public- and private-sector clients across Canada. The firm provides management, data, and finance consulting. Annual revenue is
+approximately CAD 32 million; engagements are typically fixed-fee or time-and-materials. This standard governs staff, officers, and
+approved contractors. It is synthetic demonstration material.
+1. Review and approval workflow
+No employee may sign, accept online, or make a binding commitment for Northstar unless listed in the current Delegation of Authority
+register. Legal review is required before signature for every client agreement, vendor agreement, NDA with non-standard terms,
+amendment, renewal with changed pricing/scope, and any document imposing data, IP, indemnity, exclusivity, or service-level obligations.
+ Stage
+Responsible / timing
+Required evidence
+1. Intake
+Business sponsor submits contract and completed
+intake form to Legal at least 10 business days
+before target signature.
+Counterparty, purpose, value, term, data types, delivery owner, requested
+date; attach all schedules.
+2. Triage
+Legal acknowledges within 2 business days; urgent
+requests require sponsor and reason.
+Classify as NDA, client, vendor, amendment, or other; identify privacy/security
+and tax flags.
+3. Review
+Legal redlines against approved template; business
+owner validates scope, price, capacity and
+acceptance criteria.
+Version-controlled redline; procurement/security/privacy reviews where
+triggered.
+4. Approval
+Obtain approvals at thresholds below; resolve open
+issues before signature.
+Written approvals stored with final clean contract and redline.
+5. Execution
+Authorized signatory signs; Legal or delegate
+confirms completed copy and obligations calendar.
+Fully signed PDF, effective date, renewal/notice dates, owner and repository
+record.
+Approval thresholds and escalation
+ Exposure / term
+Required approval before signature
+Total committed fees or spend <= CAD 100,000 and
+term <= 24 months
+Department VP + budget owner; Legal confirms standard terms.
+CAD 100,001-500,000 or term >24 to 36 months
+CFO + General Counsel + department VP.
+> CAD 500,000; term >36 months; auto-renewal >12
+months; or exclusivity
+CEO + CFO + General Counsel; Board approval if outside annual plan.
+Any uncapped liability, broad indemnity,
+consequential-loss exposure, IP assignment, governing
+law outside Canada, or material regulatory commitment
+General Counsel and CFO; CEO for uncapped exposure or strategic exclusivity. No business
+override.
+Any material personal information, sensitive client data,
+or cross-border hosting/access
+Privacy lead and Security lead in addition to Legal; complete privacy/security assessment.
+
+
+=== top-6 passages sent to Qwen ===
+1. chunk-003-a2ee292e14 | Legal_Department.pdf | p.1
+[E1] p.1: 4 Approval Obtain approvals at thresholds below; resolve open issues before signature Written approvals stored with final clean contract and redline 5 Execution Authorized signatory signs; Legal or delegate confirms completed copy and obligations calendar Fully signed PDF, effective date, renewal/notice dates, owner and repository record Approval thresholds and escalation Exposure / term Required approval before signature Total committed fees or spend <= CAD 100,000 and term <= 24 months Department VP + budget owner; Legal confirms standard terms CAD 100,001-500,000 or term >24 to 36 months CFO + General Counsel + department VP > CAD 500,000; term >36 months; auto-renewal >12 months; or exclusivity CEO + CFO + General Counsel; Board approval if outside annual plan Any uncapped liability, broad indemnity, consequential-loss exposure, IP assignment, governing law outside Canada, or material regulatory commitment General Counsel and CFO; CEO for uncapped exposure or strategic exclusivity
+
+2. chunk-001-a4836da5b0 | Legal_Department.pdf | p.1
+[E2] p.1: The firm provides management, data, and finance consulting Annual revenue is approximately CAD 32 million; engagements are typically fixed-fee or time-and-materials This standard governs staff, officers, and approved contractors It is synthetic demonstration material 1 Review and approval workflow No employee may sign, accept online, or make a binding commitment for Northstar unless listed in the current Delegation of Authority register Legal review is required before signature for every client agreement, vendor agreement, NDA with non-standard terms, amendment, renewal with changed pricing/scope, and any document imposing data, IP, indemnity, exclusivity, or service-level obligations Stage Responsible / timing Required evidence 1 Intake Business sponsor submits contract and completed intake form to Legal at least 10 business days before target signature Counterparty, purpose, value, term, data types, delivery owner, requested date; attach all schedules 2
+
+3. chunk-002-312e21011a | Legal_Department.pdf | p.1
+[E3] p.1: Stage Responsible / timing Required evidence 1 Intake Business sponsor submits contract and completed intake form to Legal at least 10 business days before target signature Counterparty, purpose, value, term, data types, delivery owner, requested date; attach all schedules 2 Triage Legal acknowledges within 2 business days; urgent requests require sponsor and reason Classify as NDA, client, vendor, amendment, or other; identify privacy/security and tax flags 3 Review Legal redlines against approved template; business owner validates scope, price, capacity and acceptance criteria Version-controlled redline; procurement/security/privacy reviews where triggered 4 Approval Obtain approvals at thresholds below; resolve open issues before signature Written approvals stored with final clean contract and redline 5 Execution Authorized signatory signs; Legal or delegate confirms completed copy and obligations calendar
+
+4. chunk-012-eccd0aef92 | Legal_Department.pdf | p.3
+[E4] p.3: Obtain General Counsel approval for any assignment IP schedule and license/assignment wording; product owner sign-off Unresolved legal or commercial issue at target date Sponsor may request a business decision, but cannot waive required Legal or CFO approval General Counsel may hold execution Decision memo, residual risk acceptance, approver and expiry/revisit date 6 Contract file checklist  Signed final copy matches approved redline; all schedules and order forms attached  Approval record identifies total value, term, delegated signatory, and any accepted deviation  Business owner is assigned for delivery, invoicing, renewals, insurance certificates, and notice deadlines  Repository metadata includes counterparty, agreement type, effective/expiry dates, renewal/termination notice dates, governing law, value, and data/IP flags  Legal hold status checked before destruction; hold notices override routine retention
+
+5. chunk-009-9df7f278e5 | Tax_Department.pdf | p.2,3
+[E5] p.2: Fines, penalties, personal costs Code separately and flag as generally non-deductible or requiring tax adjustment No personal expense may be reclassified as business without evidence of business purpose Approval and reimbursement Employee submits expense within 30 days Manager approves business purpose and budget; Finance checks receipt, coding, GST/HST and policy; items over CAD 2,500, unusual travel, related-party payments, or missing receipts go to Controller Employees do not approve their own expenses See HR-03 for benefit/payroll handling and LEG-04 for vendor/client contract controls
+[E6] p.3: NORTHSTAR ADVISORY GROUP / INTERNAL POLICY LIBRARY Tax | Controlled copy in Local AI Demonstration Library 3 / 3 4
+
+6. chunk-009-3ae196012e | Legal_Department.pdf | p.2,3
+[E7] p.2: Legal coordinates privilege, contractual notice, and regulator/client response 4 NDA/vendor/client quick path NDA: use LEG-NDA template; Legal review only needed for deviations Vendor: Procurement owner + Security questionnaire where systems/data are involved + Legal approval Client: Legal review and budget/engagement approval before proposal terms become binding Store signed agreement, approvals, and obligation dates in the restricted contract repository; access by matter team and Legal Retention and related policies Legal retains executed contracts and approval records for 7 years after expiry, subject to a legal hold Do not delete held records Privacy incidents follow the Security Incident Response procedure For tax-related contract terms, consult TAX-02; for employee confidentiality and access removal, consult HR-03
+[E8] p.3: NORTHSTAR ADVISORY GROUP / INTERNAL POLICY LIBRARY Legal | Controlled copy in Local AI Demonstration Library 3 / 3 5
+
+=== prompt ===
+SYSTEM:
+Answer the question directly in one short sentence using the supplied excerpts. Cite the single excerpt that most directly supports the answer. Use a second excerpt only if the answer needs both. If the excerpts do not directly answer the question, return 'I don't know.' and an empty evidence_ids list.
+
+USER:
+Question:
+Who must approve a contract before signature when total committed fees are between CAD 100,001 and 500,000?
+
+Evidence:
+[E1] 4 Approval Obtain approvals at thresholds below; resolve open issues before signature Written approvals stored with final clean contract and redline 5 Execution Authorized signatory signs; Legal or delegate confirms completed copy and obligations calendar Fully signed PDF, effective date, renewal/notice dates, owner and repository record Approval thresholds and escalation Exposure / term Required approval before signature Total committed fees or spend <= CAD 100,000 and term <= 24 months Department VP + budget owner; Legal confirms standard terms CAD 100,001-500,000 or term >24 to 36 months CFO + General Counsel + department VP > CAD 500,000; term >36 months; auto-renewal >12 months; or exclusivity CEO + CFO + General Counsel; Board approval if outside annual plan Any uncapped liability, broad indemnity, consequential-loss exposure, IP assignment, governing law outside Canada, or material regulatory commitment General Counsel and CFO; CEO for uncapped exposure or strategic exclusivity
+
+[E2] The firm provides management, data, and finance consulting Annual revenue is approximately CAD 32 million; engagements are typically fixed-fee or time-and-materials This standard governs staff, officers, and approved contractors It is synthetic demonstration material 1 Review and approval workflow No employee may sign, accept online, or make a binding commitment for Northstar unless listed in the current Delegation of Authority register Legal review is required before signature for every client agreement, vendor agreement, NDA with non-standard terms, amendment, renewal with changed pricing/scope, and any document imposing data, IP, indemnity, exclusivity, or service-level obligations Stage Responsible / timing Required evidence 1 Intake Business sponsor submits contract and completed intake form to Legal at least 10 business days before target signature Counterparty, purpose, value, term, data types, delivery owner, requested date; attach all schedules 2
+
+[E3] Stage Responsible / timing Required evidence 1 Intake Business sponsor submits contract and completed intake form to Legal at least 10 business days before target signature Counterparty, purpose, value, term, data types, delivery owner, requested date; attach all schedules 2 Triage Legal acknowledges within 2 business days; urgent requests require sponsor and reason Classify as NDA, client, vendor, amendment, or other; identify privacy/security and tax flags 3 Review Legal redlines against approved template; business owner validates scope, price, capacity and acceptance criteria Version-controlled redline; procurement/security/privacy reviews where triggered 4 Approval Obtain approvals at thresholds below; resolve open issues before signature Written approvals stored with final clean contract and redline 5 Execution Authorized signatory signs; Legal or delegate confirms completed copy and obligations calendar
+
+[E4] Obtain General Counsel approval for any assignment IP schedule and license/assignment wording; product owner sign-off Unresolved legal or commercial issue at target date Sponsor may request a business decision, but cannot waive required Legal or CFO approval General Counsel may hold execution Decision memo, residual risk acceptance, approver and expiry/revisit date 6 Contract file checklist  Signed final copy matches approved redline; all schedules and order forms attached  Approval record identifies total value, term, delegated signatory, and any accepted deviation  Business owner is assigned for delivery, invoicing, renewals, insurance certificates, and notice deadlines  Repository metadata includes counterparty, agreement type, effective/expiry dates, renewal/termination notice dates, governing law, value, and data/IP flags  Legal hold status checked before destruction; hold notices override routine retention
+
+[E5] Fines, penalties, personal costs Code separately and flag as generally non-deductible or requiring tax adjustment No personal expense may be reclassified as business without evidence of business purpose Approval and reimbursement Employee submits expense within 30 days Manager approves business purpose and budget; Finance checks receipt, coding, GST/HST and policy; items over CAD 2,500, unusual travel, related-party payments, or missing receipts go to Controller Employees do not approve their own expenses See HR-03 for benefit/payroll handling and LEG-04 for vendor/client contract controls
+
+[E6] NORTHSTAR ADVISORY GROUP / INTERNAL POLICY LIBRARY Tax | Controlled copy in Local AI Demonstration Library 3 / 3 4
+
+[E7] Legal coordinates privilege, contractual notice, and regulator/client response 4 NDA/vendor/client quick path NDA: use LEG-NDA template; Legal review only needed for deviations Vendor: Procurement owner + Security questionnaire where systems/data are involved + Legal approval Client: Legal review and budget/engagement approval before proposal terms become binding Store signed agreement, approvals, and obligation dates in the restricted contract repository; access by matter team and Legal Retention and related policies Legal retains executed contracts and approval records for 7 years after expiry, subject to a legal hold Do not delete held records Privacy incidents follow the Security Incident Response procedure For tax-related contract terms, consult TAX-02; for employee confidentiality and access removal, consult HR-03
+
+[E8] NORTHSTAR ADVISORY GROUP / INTERNAL POLICY LIBRARY Legal | Controlled copy in Local AI Demonstration Library 3 / 3 5
