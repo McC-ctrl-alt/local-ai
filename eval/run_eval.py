@@ -61,6 +61,7 @@ CSV_FIELDS = [
     "rerank_rank",
     "in_rerank_top6",
     "rerank_moved",
+    "top_rerank_score",
     "answer",
     "cited_pages",
     "search_s",
@@ -223,6 +224,17 @@ def seconds(value):
     return "" if value is None else f"{value:.3f}"
 
 
+def format_score(value):
+    return "" if value is None else f"{value:.4f}"
+
+
+def top_rerank_score(outcome):
+    reranked = outcome.get("reranked") or []
+    if not reranked:
+        return None
+    return float(reranked[0][0])
+
+
 def load_questions(path):
     with path.open(encoding="utf-8") as handle:
         document = yaml.safe_load(handle)
@@ -343,6 +355,7 @@ def evaluate(folder, questions, dump_dir=None):
             "rerank_rank": rerank_cell,
             "in_rerank_top6": top6_cell,
             "rerank_moved": moved_cell,
+            "top_rerank_score": format_score(top_rerank_score(outcome)),
             "answer": outcome["answer"],
             "cited_pages": format_citations(outcome["citations"]),
             "search_s": seconds(outcome["search_seconds"]),
@@ -376,6 +389,7 @@ def print_question(row):
     )
     print(f"in reranked top-{curator.FINAL_CONTEXT_COUNT}: {row['in_rerank_top6']} (rank {row['rerank_rank'] or 'none'})")
     print(f"rerank moved it: {row['rerank_moved']}")
+    print(f"top rerank score: {row['top_rerank_score'] or 'n/a'}")
     print(f"answer: {row['answer']}")
     print(f"cited pages: {row['cited_pages'] or 'none'}")
     print(format_time_line(row))
