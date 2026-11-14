@@ -24,3 +24,4 @@ venv/
 # Editor settings
 .vscode/
 
+!knowledge_test/*.pdf
