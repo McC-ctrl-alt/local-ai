@@ -13,6 +13,9 @@ sys.path.insert(0, str(ROOT))
 
 import curator_cached as curator
 
+# Eval questions and the Northstar PDFs live in this folder.
+DEFAULT_FOLDER = ROOT / "knowledge_test"
+
 
 NUMBER_WORDS = {
     "1": "one",
@@ -429,7 +432,12 @@ def write_results(path, rows):
 
 def main(argv=None):
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--folder", type=Path, default=ROOT / "knowledge_test")
+    parser.add_argument(
+        "--folder",
+        type=Path,
+        default=DEFAULT_FOLDER,
+        help="PDF folder to score. Defaults to knowledge_test/.",
+    )
     parser.add_argument("--questions", type=Path, default=ROOT / "eval" / "questions.yaml")
     parser.add_argument("--output", type=Path, default=ROOT / "eval" / "results.csv")
     parser.add_argument(
@@ -440,6 +448,7 @@ def main(argv=None):
     args = parser.parse_args(argv)
     questions = load_questions(args.questions.expanduser().resolve())
     folder = args.folder.expanduser().resolve()
+    print(f"Folder: {folder}")
     dump_dir = (ROOT / "eval" / "dumps") if args.dump else None
     rows = evaluate(folder, questions, dump_dir)
     output = args.output if args.output.is_absolute() else ROOT / args.output
