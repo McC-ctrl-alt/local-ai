@@ -13,6 +13,9 @@ sys.path.insert(0, str(ROOT))
 
 import curator_cached as curator
 
+# Eval questions and the Northstar PDFs live in this folder.
+DEFAULT_FOLDER = ROOT / "knowledge_test"
+
 
 NUMBER_WORDS = {
     "1": "one",
@@ -58,6 +61,7 @@ CSV_FIELDS = [
     "rerank_rank",
     "in_rerank_top6",
     "rerank_moved",
+    "top_rerank_score",
     "answer",
     "cited_pages",
     "search_s",
@@ -220,6 +224,17 @@ def seconds(value):
     return "" if value is None else f"{value:.3f}"
 
 
+def format_score(value):
+    return "" if value is None else f"{value:.4f}"
+
+
+def top_rerank_score(outcome):
+    reranked = outcome.get("reranked") or []
+    if not reranked:
+        return None
+    return float(reranked[0][0])
+
+
 def load_questions(path):
     with path.open(encoding="utf-8") as handle:
         document = yaml.safe_load(handle)
@@ -340,6 +355,7 @@ def evaluate(folder, questions, dump_dir=None):
             "rerank_rank": rerank_cell,
             "in_rerank_top6": top6_cell,
             "rerank_moved": moved_cell,
+            "top_rerank_score": format_score(top_rerank_score(outcome)),
             "answer": outcome["answer"],
             "cited_pages": format_citations(outcome["citations"]),
             "search_s": seconds(outcome["search_seconds"]),
@@ -373,6 +389,7 @@ def print_question(row):
     )
     print(f"in reranked top-{curator.FINAL_CONTEXT_COUNT}: {row['in_rerank_top6']} (rank {row['rerank_rank'] or 'none'})")
     print(f"rerank moved it: {row['rerank_moved']}")
+    print(f"top rerank score: {row['top_rerank_score'] or 'n/a'}")
     print(f"answer: {row['answer']}")
     print(f"cited pages: {row['cited_pages'] or 'none'}")
     print(format_time_line(row))
@@ -429,7 +446,12 @@ def write_results(path, rows):
 
 def main(argv=None):
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--folder", type=Path, default=ROOT / "knowledge_test")
+    parser.add_argument(
+        "--folder",
+        type=Path,
+        default=DEFAULT_FOLDER,
+        help="PDF folder to score. Defaults to knowledge_test/.",
+    )
     parser.add_argument("--questions", type=Path, default=ROOT / "eval" / "questions.yaml")
     parser.add_argument("--output", type=Path, default=ROOT / "eval" / "results.csv")
     parser.add_argument(
@@ -440,6 +462,7 @@ def main(argv=None):
     args = parser.parse_args(argv)
     questions = load_questions(args.questions.expanduser().resolve())
     folder = args.folder.expanduser().resolve()
+    print(f"Folder: {folder}")
     dump_dir = (ROOT / "eval" / "dumps") if args.dump else None
     rows = evaluate(folder, questions, dump_dir)
     output = args.output if args.output.is_absolute() else ROOT / args.output

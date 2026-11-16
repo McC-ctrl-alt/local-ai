@@ -28,6 +28,10 @@ RERANKER_MODEL = os.environ.get(
 )
 CANDIDATE_COUNT = int(os.environ.get("RAG_CANDIDATE_COUNT", "10"))
 FINAL_CONTEXT_COUNT = int(os.environ.get("RAG_FINAL_CONTEXT_COUNT", "6"))
+# On knowledge_test/, both no-answer questions scored below -1.7 and all eight
+# answerable questions scored above 0.3. -0.7 sits in that gap. A top rerank
+# score under it returns "I don't know." and does not call Qwen.
+RERANK_ABSTAIN_BELOW = -0.7
 MAX_CITATIONS = 2
 
 
@@ -570,7 +574,20 @@ def ask_question(question, index, pdf_name, reranker, compare=False, quiet=False
                 print(f"Expected passage after reranking: {reranked_rank or 'outside candidates'}")
             print(f"Expected answer: {case['gold_answer']}")
     started = perf_counter()
-    if compare:
+    top_score = reranked[0][0] if reranked else None
+    if top_score is not None and top_score < RERANK_ABSTAIN_BELOW:
+        if not quiet:
+            print(f"Top rerank score {top_score:.4f} is below {RERANK_ABSTAIN_BELOW}.")
+            print("Answer: I don't know.")
+        result = {
+            "answer": "I don't know.",
+            "citations": [],
+            "system_prompt": "",
+            "prompt": "",
+            "passages": [],
+            "evidence": {},
+        }
+    elif compare:
         if not quiet:
             print("\nCosine-only answer")
         result = generate_answer(question, candidates, pdf_name, quiet=quiet)
