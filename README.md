@@ -53,6 +53,6 @@ python3 eval/run_eval.py
 python3 curator_cached.py --pdf knowledge_test/HR_Department.pdf --question "What is the standard vacation entitlement for a full year?"
 ```
 
-`--folder` defaults to `knowledge_test/` (HR, Legal, and Tax). Pass `--pdf` to index one file instead. `eval/run_eval.py` reads `eval/questions.yaml` and writes `eval/results.csv` plus `eval/summary.txt`.
+`curator_cached.py --folder` defaults to `knowledge_test/` (HR, Legal, and Tax). Pass `--pdf` to index one file instead. `eval/run_eval.py` reads `eval/questions.yaml` and writes `eval/results.csv` plus `eval/summary.txt`.
 
-Engine PRs must pass `python3 eval/compare.py` before merge. It compares a results CSV to the baseline `eval/results_run4.csv`, which has the same correct, wrong, IDK, and citation counts as `eval/results_run3.csv`. The report shows those counts and the average search, rerank, and answer times. The command exits non-zero if any count gets worse, or if any no-answer question gets an answer.
+Engine PRs must pass `python3 eval/compare.py` before merge. It compares a results CSV to the baseline `eval/results_run4.csv`. The report shows those counts and the average search, rerank, and answer times. The command exits non-zero if any count gets worse, or if any no-answer question gets an answer.

@@ -1,4 +1,4 @@
-"""Ask questions about a local PDF with Ollama and a persistent document cache."""
+"""Ask questions about local PDFs with Ollama and a persistent document cache."""
 
 import argparse
 import hashlib
@@ -16,9 +16,8 @@ from pypdf.errors import PdfReadError
 
 
 ROOT = Path(__file__).resolve().parent
-DEFAULT_PDF = ROOT / "Bitcoin Thesis Paper copy.pdf"
+DEFAULT_FOLDER = ROOT / "knowledge_test"
 CACHE_DIR = ROOT / ".curator_index"
-EVALUATION_CASES_FILE = ROOT / "evaluation_cases.jsonl"
 CACHE_SCHEMA = 1
 OLLAMA_URL = os.environ.get("OLLAMA_URL", "http://localhost:11434").rstrip("/")
 EMBED_MODEL = "nomic-embed-text"
@@ -140,27 +139,6 @@ def validate_citations(answer, citations, selected_chunks):
             )
 
     return not problems, problems
-
-
-def find_evaluation_case(question):
-    if not os.path.exists(EVALUATION_CASES_FILE):
-        return None
-    with EVALUATION_CASES_FILE.open(encoding="utf-8") as cases_file:
-        for line in cases_file:
-            if not line.strip():
-                continue
-            case = json.loads(line)
-            if normalize_text(case.get("question", "")) == normalize_text(question):
-                return case
-    return None
-
-
-def find_quote_rank(ranked_chunks, quote, reranked=False):
-    for rank, result in enumerate(ranked_chunks, start=1):
-        chunk = result[3] if reranked else result[2]
-        if chunk_contains_quote(chunk, quote):
-            return rank, chunk["chunk_id"]
-    return None, None
 
 
 def show_ranking(title, ranked_chunks, reranked=False):
@@ -493,8 +471,14 @@ def generate_answer(question, ranked, pdf_name, reranked=False, quiet=False):
     def finish(answer, citations):
         if not quiet:
             print(f"Answer: {answer}")
-            for page_number in dict.fromkeys(citation["page_number"] for citation in citations):
-                print(f"Source: {pdf_name}, page {page_number}")
+            seen = []
+            for citation in citations:
+                source = citation.get("source_file") or pdf_name
+                key = (source, citation["page_number"])
+                if key in seen:
+                    continue
+                seen.append(key)
+                print(f"Source: {source}, page {citation['page_number']}")
         return {
             "answer": answer,
             "citations": citations,
@@ -565,15 +549,6 @@ def ask_question(question, index, pdf_name, reranker, compare=False, quiet=False
         show_ranking("Cosine candidates", candidates)
         if reranked is not None:
             show_ranking("Reranked candidates", reranked, reranked=True)
-        case = find_evaluation_case(question)
-        if case:
-            quote = case["supporting_quote"]
-            cosine_rank, _chunk_id = find_quote_rank(candidates, quote)
-            print(f"Expected passage in cosine ranking: {cosine_rank or 'outside candidates'}")
-            if reranked is not None:
-                reranked_rank, _chunk_id = find_quote_rank(reranked, quote, reranked=True)
-                print(f"Expected passage after reranking: {reranked_rank or 'outside candidates'}")
-            print(f"Expected answer: {case['gold_answer']}")
     started = perf_counter()
     top_score = reranked[0][0] if reranked else None
     if top_score is not None and top_score < RERANK_ABSTAIN_BELOW:
@@ -621,24 +596,47 @@ def ask_question(question, index, pdf_name, reranker, compare=False, quiet=False
 
 def main(argv=None):
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--pdf", type=Path, default=DEFAULT_PDF, help="Choose a local PDF.")
+    parser.add_argument(
+        "--folder",
+        type=Path,
+        help="Index every PDF in this folder. Defaults to knowledge_test/.",
+    )
+    parser.add_argument(
+        "--pdf",
+        type=Path,
+        help="Index one PDF instead of the folder.",
+    )
     mode = parser.add_mutually_exclusive_group()
-    mode.add_argument("--index", action="store_true", help="Prepare the PDF cache and exit.")
+    mode.add_argument("--index", action="store_true", help="Prepare the cache and exit.")
     mode.add_argument("--question", help="Answer one document question and exit.")
     parser.add_argument("--compare", action="store_true", help="Show both search rankings and answers.")
     args = parser.parse_args(argv)
     if CANDIDATE_COUNT <= 0 or FINAL_CONTEXT_COUNT <= 0:
         parser.error("Candidate and context counts must be positive.")
-
-    pdf_path = args.pdf.expanduser().resolve()
-    if not pdf_path.is_file():
-        parser.error(f"PDF not found at {pdf_path}. Put it beside the script or pass --pdf.")
+    if args.folder is not None and args.pdf is not None:
+        parser.error("Pass --folder or --pdf, not both.")
 
     started = perf_counter()
     try:
-        index = load_or_build_index(pdf_path)
+        if args.pdf is not None:
+            pdf_path = args.pdf.expanduser().resolve()
+            if not pdf_path.is_file():
+                parser.error(f"PDF not found at {pdf_path}.")
+            index = load_or_build_index(pdf_path)
+            source_name = pdf_path.name
+            idle_prompt = "\nAsk a question about the PDF. Type exit to quit."
+        else:
+            folder = (args.folder if args.folder is not None else DEFAULT_FOLDER).expanduser().resolve()
+            if not folder.is_dir():
+                parser.error(f"PDF folder not found at {folder}.")
+            pdfs = list_pdfs(folder)
+            if not pdfs:
+                parser.error(f"No PDFs found in {folder}.")
+            index = load_corpus(pdfs)
+            source_name = folder.name
+            idle_prompt = "\nAsk a question about the PDFs. Type exit to quit."
     except (OSError, PdfReadError, ValueError, RuntimeError, requests.RequestException) as error:
-        parser.exit(1, f"Could not prepare the PDF: {error}\n")
+        parser.exit(1, f"Could not prepare the documents: {error}\n")
     print(f"Index time: {perf_counter() - started:.1f}s")
 
     if args.index:
@@ -647,7 +645,7 @@ def main(argv=None):
     reranker = None
     reranker_attempted = False
     if args.question is None:
-        print("\nAsk a question about the PDF. Use /chat for a general question or exit to quit.")
+        print(idle_prompt)
 
     while True:
         try:
@@ -660,24 +658,16 @@ def main(argv=None):
                     parser.error("Enter a question after --question.")
                 continue
 
-            command, *arguments = entry.split(maxsplit=1)
-            if command == "/chat":
-                if arguments:
-                    answer = chat_answer("Answer clearly. Say when you are unsure.", arguments[0])
-                    print(f"Answer: {answer.strip()}")
-                else:
-                    print("Enter a question after /chat.")
-            else:
-                if not reranker_attempted:
-                    reranker_attempted = True
-                    print("Loading the reranker for the first question...", flush=True)
-                    started = perf_counter()
-                    try:
-                        reranker = load_reranker()
-                    except Exception as error:
-                        print(f"Reranker could not load. Using cosine search. {error}")
-                    print(f"Reranker load time: {perf_counter() - started:.1f}s")
-                ask_question(entry, index, pdf_path.name, reranker, args.compare)
+            if not reranker_attempted:
+                reranker_attempted = True
+                print("Loading the reranker for the first question...", flush=True)
+                started = perf_counter()
+                try:
+                    reranker = load_reranker()
+                except Exception as error:
+                    print(f"Reranker could not load. Using cosine search. {error}")
+                print(f"Reranker load time: {perf_counter() - started:.1f}s")
+            ask_question(entry, index, source_name, reranker, args.compare)
         except (EOFError, KeyboardInterrupt):
             print()
             return 0

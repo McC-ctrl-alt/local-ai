@@ -16,7 +16,6 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 DEFAULT_BASELINE = ROOT / "eval" / "results_run4.csv"
 DEFAULT_RESULTS = ROOT / "eval" / "results.csv"
-COUNT_FIELDS = ("correct", "wrong", "IDK", "citation hits")
 
 
 def is_idk(answer):
