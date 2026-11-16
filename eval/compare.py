@@ -2,8 +2,9 @@
 
 Prints correct, wrong, IDK, and citation-hit counts, plus average search,
 rerank, and answer times. Exits 1 when any of those counts gets worse, or
-when a no-answer question the baseline left as "I don't know" is answered.
-Average times are printed and do not change the exit status.
+when any no-answer question gets an answer. That check does not depend on
+what the baseline said. Average times are printed and do not change the
+exit status.
 """
 
 import argparse
@@ -90,19 +91,21 @@ def worse_counts(baseline, results):
 
 
 def answered_no_answer(baseline_rows, result_rows):
-    """No-answer questions the baseline abstained on and this file answers."""
+    """Any no-answer question this file answers, baseline or not."""
     by_id = {row["id"]: row for row in result_rows}
     problems = []
-    for row in baseline_rows:
-        if row["kind"] != "no-answer" or not is_idk(row["answer"]):
+    seen = set()
+    for row in list(baseline_rows) + list(result_rows):
+        if row["kind"] != "no-answer" or row["id"] in seen:
             continue
+        seen.add(row["id"])
         current = by_id.get(row["id"])
         if current is None:
-            problems.append(f"{row['id']} is missing, and the baseline left it unanswered")
+            problems.append(f"{row['id']} is a no-answer question and is missing")
             continue
         if not is_idk(current["answer"]):
             problems.append(
-                f"{row['id']} was \"I don't know\" in the baseline and is now answered: {current['answer']}"
+                f"{row['id']} is a no-answer question and was answered: {current['answer']}"
             )
     return problems
 
