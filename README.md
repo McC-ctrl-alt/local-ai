@@ -2,7 +2,7 @@
 
 A question and a user role are checked against `policy.yaml`. One short call to local `qwen2.5:3b` lists every department the question needs, each with a reason. Python checks the role against each department. A department the role cannot read is refused with that access rule, and its files stay closed.
 
-Allowed folders are the only ones opened. Chunking and `nomic-embed-text` follow `curator.py`. Cosine similarity keeps the top 10 chunks. The cross-encoder reranker reorders those 10, and both orders are printed side by side. One `qwen2.5:3b` call answers from the top 6 reranked passages and cites the page.
+Allowed folders are the only ones opened. Chunking and `nomic-embed-text` follow `curator_cached.py`. Cosine similarity keeps the top 10 chunks. The cross-encoder reranker reorders those 10, and both orders are printed side by side. One `qwen2.5:3b` call answers from the top 6 reranked passages and cites the page.
 
 Tax, Legal, and HR each have a folder, allowed roles, and a few rules. The sample firm, Aster Meridian Group, is fictional.
 
