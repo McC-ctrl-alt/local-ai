@@ -482,10 +482,11 @@ def generate_answer(question, ranked, pdf_name, reranked=False, quiet=False):
     selected_chunks, evidence = select_context(ranked, reranked=reranked)
     context = "\n\n".join(f"[{key}] {item['quote']}" for key, item in evidence.items())
     system_prompt = (
-        "Answer the question directly in one short sentence using the supplied excerpts. "
-        "Cite the single excerpt that most directly supports the answer. Use a second "
-        "excerpt only if the answer needs both. If the excerpts do not directly answer "
-        "the question, return 'I don't know.' and an empty evidence_ids list."
+        "Copy, word for word, every sentence that states a fact the question asks for. "
+        "Use the general or standard rule, not an exception, a target, or the first date you see. "
+        "If one sentence states the standard rule and also an exception, copy that whole sentence. "
+        "Cite the excerpt you copied. Use a second excerpt only if the answer needs both. "
+        "If no passage states the fact explicitly, return 'I don't know.' and an empty evidence_ids list."
     )
     user_prompt = f"Question:\n{question}\n\nEvidence:\n{context}" if context else ""
 

@@ -1,0 +1,18 @@
+correct: 7
+partial: 1
+wrong: 0
+correct-IDK: 2
+citation accuracy: 9/10 (90%)
+avg seconds: search 0.1, rerank 0.2, answer 6.8, total 7.2
+hr-vacation-entitlement: Time: Search 0.0 seconds, Rerank: 0.2 seconds, Answer: 10.8 seconds
+hr-benefits-enrollment: Time: Search 0.2 seconds, Rerank: 0.2 seconds, Answer: 9.6 seconds
+hr-personnel-retention: Time: Search 0.2 seconds, Rerank: 0.2 seconds, Answer: 7.9 seconds
+tax-ontario-hst: Time: Search 0.2 seconds, Rerank: 0.2 seconds, Answer: 7.6 seconds
+legal-approval-band: Time: Search 0.2 seconds, Rerank: 0.2 seconds, Answer: 8.4 seconds
+legal-nda-term: Time: Search 0.2 seconds, Rerank: 0.3 seconds, Answer: 8.2 seconds
+tax-return-due: Time: Search 0.2 seconds, Rerank: 0.2 seconds, Answer: 8.0 seconds
+hr-harassment-ack: Time: Search 0.2 seconds, Rerank: 0.2 seconds, Answer: 7.8 seconds
+hr-rrsp-match: Time: Search 0.1 seconds, Rerank: 0.2 seconds, Answer: 0.0 seconds
+hr-parental-weeks: Time: Search 0.0 seconds, Rerank: 0.2 seconds, Answer: 0.0 seconds
+needs human scoring:
+- tax-ontario-hst [partial] 13%
