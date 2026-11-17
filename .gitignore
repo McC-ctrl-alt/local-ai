@@ -4,6 +4,7 @@
 # Generated embedding cache
 embeddings.json
 policy_embeddings.json
+.curator_index/
 
 # Fictional demo PDFs are part of this example
 !docs/**/*.pdf
@@ -13,6 +14,11 @@ __pycache__/
 *.py[cod]
 .venv/
 venv/
+.pytest_cache/
+
+# Rewritten by eval/run_eval.py
+eval/results.csv
+eval/summary.txt
 
 # Environment variables and secrets
 .env
