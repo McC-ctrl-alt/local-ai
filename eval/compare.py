@@ -14,7 +14,7 @@ from pathlib import Path
 
 
 ROOT = Path(__file__).resolve().parents[1]
-DEFAULT_BASELINE = ROOT / "eval" / "results_run4.csv"
+DEFAULT_BASELINE = ROOT / "eval" / "results_baseline_mac.csv"
 DEFAULT_RESULTS = ROOT / "eval" / "results.csv"
 
 
