@@ -1,0 +1,146 @@
+# Holdout questions over knowledge_test/ (HR, Legal, Tax).
+# Same schema as eval/questions.yaml so run_eval.py can load this file with
+#   python3 eval/run_eval.py --questions eval/questions_holdout.yaml
+# These do not repeat or lightly reword the original ten questions.
+# facts are what the answer must contain. page_facts are what the extracted
+# page must contain. no-answer questions have no supporting page.
+questions:
+  - id: hr-vacation-notice
+    kind: two-detail
+    file: HR_Department.pdf
+    page: 1
+    question: How much notice should someone give when booking time off, and how long does their manager have to respond to the request?
+    expected: At least 10 business days ahead, and the manager responds within 5 business days.
+    facts:
+      - 10 business days
+      - 5 business days
+    page_facts:
+      - at least 10 business days ahead
+      - manager responds within 5 business days
+
+  - id: hr-service-desk-sla
+    kind: two-detail
+    file: HR_Department.pdf
+    page: 2
+    question: When an employee asks HR about pay, benefits, time off, or an accommodation, how quickly should that request be acknowledged, and by when should HR aim to close it or send an update?
+    expected: Acknowledge in 2 business days, and target resolution or an update within 10 business days.
+    facts:
+      - 2 business days
+      - 10 business days
+    page_facts:
+      - acknowledge in 2 business days
+      - target resolution or update within 10 business days
+
+  - id: hr-final-pay-timing
+    kind: table-row
+    file: HR_Department.pdf
+    page: 3
+    question: Once employment has ended, how soon must Payroll and HR send the employee's last pay, unused vacation pay, benefits-continuation details, and Record of Employment?
+    expected: Within 5 business days
+    facts:
+      - 5 business days
+    page_facts:
+      - Within 5 business days
+      - Issue final pay
+
+  - id: legal-low-value-approval
+    kind: table-row
+    file: Legal_Department.pdf
+    page: 1
+    question: For a contract of CAD 100,000 or less that lasts no more than 24 months, who has to sign off before it can be executed?
+    expected: Department VP + budget owner; Legal confirms standard terms.
+    facts:
+      - Department VP
+      - budget owner
+    page_facts:
+      - CAD 100,000
+      - Department VP + budget owner
+
+  - id: legal-client-payment
+    kind: two-detail
+    file: Legal_Department.pdf
+    page: 2
+    question: On a typical client engagement, how frequently does Northstar bill, and how many days does the client have to pay?
+    expected: Invoice monthly; payment net 30.
+    facts:
+      - Invoice monthly
+      - net 30
+    page_facts:
+      - Invoice monthly
+      - payment net 30
+
+  - id: legal-contract-retention
+    kind: rephrased
+    file: Legal_Department.pdf
+    page: 2
+    question: How long after a contract ends does Legal keep the signed copy and the approval record?
+    expected: 7 years after expiry
+    facts:
+      - 7 years
+    page_facts:
+      - 7 years after expiry
+
+  - id: tax-balance-due
+    kind: fact
+    file: Tax_Department.pdf
+    page: 1
+    question: When does Northstar generally have to pay any corporate tax still owing for the year?
+    expected: two months after year-end
+    facts:
+      - two months after year-end
+    page_facts:
+      - two months after year-end
+
+  - id: tax-monthly-filer-due
+    kind: rephrased
+    file: Tax_Department.pdf
+    page: 2
+    question: When a GST/HST return is filed monthly, how long after the period ends are the return and payment generally due?
+    expected: one month after the reporting period
+    facts:
+      - one month after the reporting period
+    page_facts:
+      - one month after the reporting period
+
+  - id: tax-meals-deductible
+    kind: number+unit
+    file: Tax_Department.pdf
+    page: 2
+    question: If a consultant takes a client to lunch, what share of that meal can Northstar generally deduct for income tax?
+    expected: 50%
+    facts:
+      - 50%
+    page_facts:
+      - 50% is deductible for income tax
+
+  - id: hr-overtime-premium
+    kind: no-answer
+    file: ""
+    page: null
+    question: What overtime premium does Northstar pay for hours worked beyond 44 in a week?
+    expected: I don't know
+    facts: []
+
+  - id: legal-pli-minimum
+    kind: no-answer
+    file: ""
+    page: null
+    question: What minimum professional liability insurance coverage must a vendor carry to work with Northstar?
+    expected: I don't know
+    facts: []
+
+  - id: tax-qst-rate
+    kind: no-answer
+    file: ""
+    page: null
+    question: What QST rate generally applies to a taxable service supplied in Quebec?
+    expected: I don't know
+    facts: []
+
+  - id: hr-severance-weeks
+    kind: no-answer
+    file: ""
+    page: null
+    question: How many weeks of severance does Northstar pay for each year of service?
+    expected: I don't know
+    facts: []
