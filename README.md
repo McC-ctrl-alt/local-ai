@@ -2,7 +2,7 @@
 
 A question and a user role are checked against `policy.yaml`. One short call to local `qwen2.5:3b` lists every department the question needs, each with a reason. Python checks the role against each department. A department the role cannot read is refused with that access rule, and its files stay closed.
 
-Allowed folders are the only ones opened. Chunking and `nomic-embed-text` follow `curator_cached.py`. Cosine similarity keeps the top 10 chunks. The cross-encoder reranker reorders those 10, and both orders are printed side by side. One `qwen2.5:3b` call answers from the top 6 reranked passages and cites the page.
+Allowed folders are the only ones opened. Chunking and `nomic-embed-text` follow `curator.py`. Cosine similarity keeps the top 10 chunks. The cross-encoder reranker reorders those 10, and both orders are printed side by side. One `qwen2.5:3b` call answers from the top 6 reranked passages and cites the page.
 
 Tax, Legal, and HR each have a folder, allowed roles, and a few rules. The sample firm, Aster Meridian Group, is fictional.
 
@@ -41,7 +41,7 @@ python3 -m unittest discover -s tests -t . -v
 
 ## Cached folder search on an M1 Air (8 GB)
 
-`curator_cached.py` indexes every PDF in a folder, one cache file per PDF. It keeps cosine similarity to the top 10 passages, reranks those 10 with the CPU cross-encoder, and makes one `qwen2.5:3b` call on the top 6. Each answer prints search, rerank, and answer times, and cites the file and page. `qwen2.5:3b` and `nomic-embed-text` are the models that fit this machine. The reranker stays on CPU (`cross-encoder/ms-marco-MiniLM-L6-v2`).
+`curator.py` indexes every PDF in a folder, one cache file per PDF. It keeps cosine similarity to the top 10 passages, reranks those 10 with the CPU cross-encoder, and makes one `qwen2.5:3b` call on the top 6. Each answer prints search, rerank, and answer times, and cites the file and page. `qwen2.5:3b` and `nomic-embed-text` are the models that fit this machine. The reranker stays on CPU (`cross-encoder/ms-marco-MiniLM-L6-v2`).
 
 ```bash
 python3 -m venv .venv
@@ -50,9 +50,9 @@ pip install -r requirements.txt
 ollama pull nomic-embed-text
 ollama pull qwen2.5:3b
 python3 eval/run_eval.py
-python3 curator_cached.py --pdf knowledge_test/HR_Department.pdf --question "What is the standard vacation entitlement for a full year?"
+python3 curator.py --pdf knowledge_test/HR_Department.pdf --question "What is the standard vacation entitlement for a full year?"
 ```
 
-`curator_cached.py --folder` defaults to `knowledge_test/` (HR, Legal, and Tax). Pass `--pdf` to index one file instead. `eval/run_eval.py` reads `eval/questions.yaml` and writes `eval/results.csv` plus `eval/summary.txt`.
+`curator.py --folder` defaults to `knowledge_test/` (HR, Legal, and Tax). Pass `--pdf` to index one file instead. `eval/run_eval.py` reads `eval/questions.yaml` and writes `eval/results.csv` plus `eval/summary.txt`.
 
 Engine PRs must pass `python3 eval/compare.py` before merge. It compares a results CSV to the baseline `eval/results_run4.csv`. The report shows those counts and the average search, rerank, and answer times. The command exits non-zero if any count gets worse, or if any no-answer question gets an answer.

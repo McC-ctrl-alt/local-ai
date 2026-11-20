@@ -28,7 +28,7 @@ CACHE_PATH = ROOT / "policy_embeddings.json"
 OLLAMA_URL = os.environ.get("OLLAMA_URL", "http://localhost:11434").rstrip("/")
 EMBED_MODEL = "nomic-embed-text"
 CHAT_MODEL = "qwen2.5:3b"
-# Same knobs and model as curator_cached.py.
+# Same knobs and model as curator.py.
 CANDIDATE_COUNT = int(os.environ.get("RAG_CANDIDATE_COUNT", "10"))
 FINAL_CONTEXT_COUNT = int(os.environ.get("RAG_FINAL_CONTEXT_COUNT", "6"))
 RERANKER_MODEL = os.environ.get(
@@ -222,7 +222,7 @@ def route_question(policy, question):
 
 
 def make_chunk_record(sentences, chunk_index, source):
-    # Same record as curator_cached.py, plus the file the pages came from.
+    # Same record as curator.py, plus the file the pages came from.
     chunk_text = " ".join(sentence for sentence, _page_number in sentences)
     page_sentences = {}
     for sentence, page_number in sentences:
@@ -488,7 +488,7 @@ def print_citations(result):
 
 def evidence_from(selected_chunks):
     # One excerpt per sentence so a citation is the line that states the fact.
-    # Chunk boundaries stay the same as curator_cached.py.
+    # Chunk boundaries stay the same as curator.py.
     evidence = {}
     for chunk in selected_chunks:
         units = chunk.get("sentences") or [
