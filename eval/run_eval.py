@@ -1,4 +1,4 @@
-"""Score curator_cached.py on eval/questions.yaml and write eval/results.csv."""
+"""Score curator.py on eval/questions.yaml and write eval/results.csv."""
 
 import argparse
 import csv
@@ -11,7 +11,7 @@ from pypdf import PdfReader
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 
-import curator_cached as curator
+import curator
 
 # Eval questions and the Northstar PDFs live in this folder.
 DEFAULT_FOLDER = ROOT / "knowledge_test"

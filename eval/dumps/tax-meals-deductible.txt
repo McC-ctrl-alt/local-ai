@@ -1,0 +1,59 @@
+=== expected page ===
+Tax_Department.pdf page 2
+NORTHSTAR ADVISORY GROUP  /  INTERNAL POLICY LIBRARY
+Tax  |  Controlled copy in Local AI Demonstration Library
+2  /  3
+GST/HST transaction and return procedure
+ Step
+Control
+1. Invoice coding
+Use customer place-of-supply and service facts to determine rate; show tax registration number, taxable amount, rate and tax
+separately. Taxable service supplied in Ontario is generally subject to 13% HST; confirm exceptions, zero-rating and
+place-of-supply rules.
+2. Expense capture
+Require itemized third-party receipt, supplier, date, business purpose, tax amount and cost centre. Reconcile card feed to
+approved expense report. Personal or missing-evidence items are not claimed as ITCs until resolved.
+3. Monthly reconciliation
+Reconcile output tax by jurisdiction, collected tax, ITCs, adjustments, credit notes, bad debts, imports and net tax
+payable/refundable. Investigate differences over CAD 500 or 1% of account balance before filing.
+4. Review and submit
+Preparer signs checklist; independent reviewer compares return to GL and prior period; Director approves. Submit and remit
+on or before confirmed due date; retain submission receipt and bank confirmation.
+5. Correction
+Correct errors in the next return where permitted or use prescribed adjustment process. Material errors, repeated
+misclassification, or potential penalty exposure go to Director and external adviser promptly.
+Reporting and remittance dates
+Tax maintains CRA account details and confirms the assigned reporting period. For a monthly filer, the return and payment are generally
+due one month after the reporting period. Internal target: submit by the 20th of the following month. If the 20th is not a business day, target
+the prior business day. Do not assume the internal target changes statutory due dates.
+3. Expense deductibility and approvals
+ Expense type
+Tax evidence / treatment control
+Client meals and entertainment
+Record attendees, client or business purpose, date and itemized receipt. Generally only 50% is deductible for income tax;
+ITC recovery may also be restricted. Flag unusual events, employee-only functions and exceptions for Tax review.
+Travel and mileage
+Business itinerary, dates, destination, purpose, project and receipts. Commuting is personal. Mileage requires date,
+origin/destination, business purpose and approved rate; Tax updates rate annually.
+Home office / remote work
+No employee deduction is assumed in corporate books without eligibility and substantiation. Employer-provided
+reimbursement follows HR/Tax guidance and documentation rules.
+Capital purchases
+Items over CAD 2,500 or useful life >1 year routed to fixed assets; record in-service date, business use, class and invoice.
+Tax determines capital cost allowance class/rate; do not expense solely to meet budget.
+Gifts, sponsorship, dues
+Identify recipient, business purpose, value and any personal benefit. Charitable donations need official receipt to support
+a corporate donation claim; sponsorship advertising is separately documented.
+Fines, penalties, personal costs
+Code separately and flag as generally non-deductible or requiring tax adjustment. No personal expense may be
+reclassified as business without evidence of business purpose.
+Approval and reimbursement
+Employee submits expense within 30 days. Manager approves business purpose and budget; Finance checks receipt, coding, GST/HST
+and policy; items over CAD 2,500, unusual travel, related-party payments, or missing receipts go to Controller. Employees do not approve
+their own expenses. See HR-03 for benefit/payroll handling and LEG-04 for vendor/client contract controls.
+
+
+=== top-6 passages sent to Qwen ===
+(none)
+=== prompt ===
+(no prompt sent)

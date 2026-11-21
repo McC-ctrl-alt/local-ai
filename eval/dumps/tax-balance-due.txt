@@ -1,0 +1,117 @@
+=== expected page ===
+Tax_Department.pdf page 1
+NORTHSTAR ADVISORY GROUP  /  INTERNAL POLICY LIBRARY
+Tax  |  Controlled copy in Local AI Demonstration Library
+1  /  3
+TAX DEPARTMENT
+Corporate tax, GST/HST & expense evidence standard
+DOCUMENT CONTROL
+Owner
+Director, Finance & Tax
+Policy ID / version
+TAX-02 | 1.0
+Effective date
+1 April 2026
+Classification
+Confidential - Finance Restricted
+Applies to
+Northstar Advisory Group, 150 employees; Toronto HQ and remote staff
+Purpose and financial context
+Northstar Advisory Group is a fictional Canadian professional-services firm headquartered in Toronto, with 150 employees and
+approximately CAD 32 million annual revenue. It delivers consulting services across Canada through fixed-fee and time-and-materials
+engagements. Finance & Tax owns filings and maintains support for tax positions. All figures, procedures and company facts are synthetic
+demonstration material; consult current law and external tax advisers for actual filings.
+1. Corporate tax compliance calendar
+Northstar uses a December 31 fiscal year-end. The Controller owns the close; the Director, Finance & Tax signs off the tax provision and
+filing package. Calendar dates below are internal control deadlines, set ahead of normal statutory deadlines. If a statutory due date falls on a
+weekend or holiday, Tax confirms the applicable rule and adjusts the calendar.
+ When (internal)
+Owner
+Required deliverable / control
+Monthly, by business day 8
+Accounting
+Close ledger; reconcile revenue, WIP, accruals, payroll, fixed assets, prepaid expenses and
+intercompany balances. Lock period after Controller review.
+Quarterly, by day 20 after
+quarter-end
+Tax analyst
+Update tax provision forecast, instalment estimate, loss/credit continuity, permanent differences
+and uncertain positions; Director approves payment changes.
+By February 15
+Controller + Tax
+Complete year-end trial balance, fixed-asset continuity, bonus/accrual support, legal claims
+summary, charitable receipts and related-party schedules.
+By March 15
+Director, Finance & Tax
+Draft T2 return, Schedule 1 reconciliation, tax provision, instalment reconciliation, supporting
+schedules and issue list; send to external tax adviser for review.
+By April 15
+CFO + external adviser
+Resolve review points; CFO approves return and payment; authorized officer signs. Submit
+before statutory filing/payment deadline.
+Monthly instalments
+Treasury + Tax
+Tax analyst calculates required instalment and compares to safe-harbour/forecast; CFO
+approves payment; treasury retains bank confirmation.
+Year-end + 6 years
+Records custodian
+Retain tax workpapers and source records under retention schedule; suspend destruction for
+audit, objection, litigation or legal hold.
+Filing discipline
+A corporate income tax return is generally due six months after fiscal year-end. A corporate balance owing is generally due two months after year-end, with a
+three-month balance-due rule potentially available to qualifying Canadian-controlled private corporations. Tax confirms Northstar’s eligibility and current statutory
+dates with its adviser each year; the internal April 15 target does not extend a legal deadline.
+2. GST/HST controls
+Northstar files monthly GST/HST returns as an internal control based on annual taxable revenue; Tax confirms the registered reporting
+period and electronic filing requirements. Accounting reconciles tax collected and input tax credits (ITCs) to the general ledger each month.
+Director approves return and remittance; Treasury submits payment and saves confirmation.
+
+
+=== top-6 passages sent to Qwen ===
+1. chunk-003-8ce4a0307e | Tax_Department.pdf | p.1
+[E1] p.1: By April 15 CFO + external adviser Resolve review points; CFO approves return and payment; authorized officer signs. Submit before statutory filing/payment deadline. Monthly instalments Treasury + Tax Tax analyst calculates required instalment and compares to safe-harbour/forecast; CFO approves payment; treasury retains bank confirmation. Year-end + 6 years Records custodian Retain tax workpapers and source records under retention schedule; suspend destruction for audit, objection, litigation or legal hold. Filing discipline A corporate income tax return is generally due six months after fiscal year-end. A corporate balance owing is generally due two months after year-end, with a three-month balance-due rule potentially available to qualifying Canadian-controlled private corporations. Tax confirms Northstar’s eligibility and current statutory dates with its adviser each year; the internal April 15 target does not extend a legal deadline.
+
+2. chunk-004-66bedc661b | Tax_Department.pdf | p.1,2
+[E2] p.1: Tax confirms Northstar’s eligibility and current statutory dates with its adviser each year; the internal April 15 target does not extend a legal deadline. GST/HST controls Northstar files monthly GST/HST returns as an internal control based on annual taxable revenue; Tax confirms the registered reporting period and electronic filing requirements. Accounting reconciles tax collected and input tax credits (ITCs) to the general ledger each month. Director approves return and remittance; Treasury submits payment and saves confirmation.
+[E3] p.2: NORTHSTAR ADVISORY GROUP / INTERNAL POLICY LIBRARY Tax | Controlled copy in Local AI Demonstration Library 2 / 3 GST/HST transaction and return procedure Step Control Invoice coding Use customer place-of-supply and service facts to determine rate; show tax registration number, taxable amount, rate and tax separately. Taxable service supplied in Ontario is generally subject to 13% HST; confirm exceptions, zero-rating and place-of-supply rules.
+
+3. chunk-001-e09876ab71 | Tax_Department.pdf | p.1
+[E4] p.1: Finance & Tax owns filings and maintains support for tax positions. All figures, procedures and company facts are synthetic demonstration material; consult current law and external tax advisers for actual filings. Corporate tax compliance calendar Northstar uses a December 31 fiscal year-end. The Controller owns the close; the Director, Finance & Tax signs off the tax provision and filing package. Calendar dates below are internal control deadlines, set ahead of normal statutory deadlines. If a statutory due date falls on a weekend or holiday, Tax confirms the applicable rule and adjusts the calendar. When (internal) Owner Required deliverable / control Monthly, by business day 8 Accounting Close ledger; reconcile revenue, WIP, accruals, payroll, fixed assets, prepaid expenses and intercompany balances. Lock period after Controller review.
+
+4. chunk-010-9b7b54fc0c | Tax_Department.pdf | p.2,3
+[E5] p.2: Employees do not approve their own expenses. See HR-03 for benefit/payroll handling and LEG-04 for vendor/client contract controls.
+[E6] p.3: NORTHSTAR ADVISORY GROUP / INTERNAL POLICY LIBRARY Tax | Controlled copy in Local AI Demonstration Library 3 / 3 Tax documentation and retention Record class Minimum internal retention Owner / storage T2 returns, tax provision, elections, notices, assessment and objection correspondence 7 years after relevant tax year, or longer where statute, dispute or adviser directs Tax repository; Director, Finance & Tax GST/HST returns, ledgers, invoices, receipts, import/export support, ITC calculations 7 years after end of relevant reporting period Finance archive; Controller Payroll remittances, T4/T4A slips and supporting payroll register 7 years after year-end, subject to longer statutory or legal hold requirements Restricted payroll system; Payroll lead Fixed asset invoices, continuity and disposition support 7 years after disposal or end of related tax year, whichever is later under internal policy Fixed asset subledger; Controller Expense claims and approvals 7 years after fiscal year-end Expense system; Finance Retention is an internal minimum, not a substitute for statutory rules.
+
+5. chunk-000-54a1b8c6ea | Tax_Department.pdf | p.1
+[E7] p.1: NORTHSTAR ADVISORY GROUP / INTERNAL POLICY LIBRARY Tax | Controlled copy in Local AI Demonstration Library 1 / 3 TAX DEPARTMENT Corporate tax, GST/HST & expense evidence standard DOCUMENT CONTROL Owner Director, Finance & Tax Policy ID / version TAX-02 | 1.0 Effective date 1 April 2026 Classification Confidential - Finance Restricted Applies to Northstar Advisory Group, 150 employees; Toronto HQ and remote staff Purpose and financial context Northstar Advisory Group is a fictional Canadian professional-services firm headquartered in Toronto, with 150 employees and approximately CAD 32 million annual revenue. It delivers consulting services across Canada through fixed-fee and time-and-materials engagements. Finance & Tax owns filings and maintains support for tax positions. All figures, procedures and company facts are synthetic demonstration material; consult current law and external tax advisers for actual filings.
+
+6. chunk-005-ca7828e9ea | HR_Department.pdf | p.1,2
+[E8] p.1: Related controls Employee agreement, payroll, records retention, and access removal are controlled; see Legal policy LEG-04 for contract/confidentiality rules and Tax policy TAX-02 for payroll tax records and reimbursement documentation.
+[E9] p.2: NORTHSTAR ADVISORY GROUP / INTERNAL POLICY LIBRARY HR | Controlled copy in Local AI Demonstration Library 2 / 3 Performance and development Northstar uses a continuous-feedback cycle with a formal annual review. Managers set 3-5 measurable goals within 30 days of the fiscal year or role start; goals should cover client outcomes, quality/risk, collaboration, and capability development. The formal review cycle runs January-February for the prior calendar year. Step Timing Practice Goal setting By day 30 / each January Agree outcomes, measures, dependencies and support. Record in HR system. Check-ins At least quarterly Discuss workload, feedback, development, wellbeing, and barriers. Record concise actions, not sensitive speculation.
+
+=== prompt ===
+SYSTEM:
+Copy, word for word, every sentence that states a fact the question asks for. Use the general or standard rule, not an exception, a target, or the first date you see. If one sentence states the standard rule and also an exception, copy that whole sentence. Cite the excerpt you copied. Use a second excerpt only if the answer needs both. If no passage states the fact explicitly, return 'I don't know.' and an empty evidence_ids list.
+
+USER:
+Question:
+When does Northstar generally have to pay any corporate tax still owing for the year?
+
+Evidence:
+[E1] By April 15 CFO + external adviser Resolve review points; CFO approves return and payment; authorized officer signs. Submit before statutory filing/payment deadline. Monthly instalments Treasury + Tax Tax analyst calculates required instalment and compares to safe-harbour/forecast; CFO approves payment; treasury retains bank confirmation. Year-end + 6 years Records custodian Retain tax workpapers and source records under retention schedule; suspend destruction for audit, objection, litigation or legal hold. Filing discipline A corporate income tax return is generally due six months after fiscal year-end. A corporate balance owing is generally due two months after year-end, with a three-month balance-due rule potentially available to qualifying Canadian-controlled private corporations. Tax confirms Northstar’s eligibility and current statutory dates with its adviser each year; the internal April 15 target does not extend a legal deadline.
+
+[E2] Tax confirms Northstar’s eligibility and current statutory dates with its adviser each year; the internal April 15 target does not extend a legal deadline. GST/HST controls Northstar files monthly GST/HST returns as an internal control based on annual taxable revenue; Tax confirms the registered reporting period and electronic filing requirements. Accounting reconciles tax collected and input tax credits (ITCs) to the general ledger each month. Director approves return and remittance; Treasury submits payment and saves confirmation.
+
+[E3] NORTHSTAR ADVISORY GROUP / INTERNAL POLICY LIBRARY Tax | Controlled copy in Local AI Demonstration Library 2 / 3 GST/HST transaction and return procedure Step Control Invoice coding Use customer place-of-supply and service facts to determine rate; show tax registration number, taxable amount, rate and tax separately. Taxable service supplied in Ontario is generally subject to 13% HST; confirm exceptions, zero-rating and place-of-supply rules.
+
+[E4] Finance & Tax owns filings and maintains support for tax positions. All figures, procedures and company facts are synthetic demonstration material; consult current law and external tax advisers for actual filings. Corporate tax compliance calendar Northstar uses a December 31 fiscal year-end. The Controller owns the close; the Director, Finance & Tax signs off the tax provision and filing package. Calendar dates below are internal control deadlines, set ahead of normal statutory deadlines. If a statutory due date falls on a weekend or holiday, Tax confirms the applicable rule and adjusts the calendar. When (internal) Owner Required deliverable / control Monthly, by business day 8 Accounting Close ledger; reconcile revenue, WIP, accruals, payroll, fixed assets, prepaid expenses and intercompany balances. Lock period after Controller review.
+
+[E5] Employees do not approve their own expenses. See HR-03 for benefit/payroll handling and LEG-04 for vendor/client contract controls.
+
+[E6] NORTHSTAR ADVISORY GROUP / INTERNAL POLICY LIBRARY Tax | Controlled copy in Local AI Demonstration Library 3 / 3 Tax documentation and retention Record class Minimum internal retention Owner / storage T2 returns, tax provision, elections, notices, assessment and objection correspondence 7 years after relevant tax year, or longer where statute, dispute or adviser directs Tax repository; Director, Finance & Tax GST/HST returns, ledgers, invoices, receipts, import/export support, ITC calculations 7 years after end of relevant reporting period Finance archive; Controller Payroll remittances, T4/T4A slips and supporting payroll register 7 years after year-end, subject to longer statutory or legal hold requirements Restricted payroll system; Payroll lead Fixed asset invoices, continuity and disposition support 7 years after disposal or end of related tax year, whichever is later under internal policy Fixed asset subledger; Controller Expense claims and approvals 7 years after fiscal year-end Expense system; Finance Retention is an internal minimum, not a substitute for statutory rules.
+
+[E7] NORTHSTAR ADVISORY GROUP / INTERNAL POLICY LIBRARY Tax | Controlled copy in Local AI Demonstration Library 1 / 3 TAX DEPARTMENT Corporate tax, GST/HST & expense evidence standard DOCUMENT CONTROL Owner Director, Finance & Tax Policy ID / version TAX-02 | 1.0 Effective date 1 April 2026 Classification Confidential - Finance Restricted Applies to Northstar Advisory Group, 150 employees; Toronto HQ and remote staff Purpose and financial context Northstar Advisory Group is a fictional Canadian professional-services firm headquartered in Toronto, with 150 employees and approximately CAD 32 million annual revenue. It delivers consulting services across Canada through fixed-fee and time-and-materials engagements. Finance & Tax owns filings and maintains support for tax positions. All figures, procedures and company facts are synthetic demonstration material; consult current law and external tax advisers for actual filings.
+
+[E8] Related controls Employee agreement, payroll, records retention, and access removal are controlled; see Legal policy LEG-04 for contract/confidentiality rules and Tax policy TAX-02 for payroll tax records and reimbursement documentation.
+
+[E9] NORTHSTAR ADVISORY GROUP / INTERNAL POLICY LIBRARY HR | Controlled copy in Local AI Demonstration Library 2 / 3 Performance and development Northstar uses a continuous-feedback cycle with a formal annual review. Managers set 3-5 measurable goals within 30 days of the fiscal year or role start; goals should cover client outcomes, quality/risk, collaboration, and capability development. The formal review cycle runs January-February for the prior calendar year. Step Timing Practice Goal setting By day 30 / each January Agree outcomes, measures, dependencies and support. Record in HR system. Check-ins At least quarterly Discuss workload, feedback, development, wellbeing, and barriers. Record concise actions, not sensitive speculation.

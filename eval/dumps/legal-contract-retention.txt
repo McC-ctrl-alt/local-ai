@@ -1,0 +1,102 @@
+=== expected page ===
+Legal_Department.pdf page 2
+NORTHSTAR ADVISORY GROUP  /  INTERNAL POLICY LIBRARY
+Legal  |  Controlled copy in Local AI Demonstration Library
+2  /  3
+2. Clause guidance and risk controls
+Use the current approved template from the contract repository. A clause marked “standard” below may be accepted only if unchanged;
+otherwise route the deviation to Legal.
+ Document
+Baseline / minimum controls
+Escalate when
+NDA
+Mutual where both parties disclose; define confidential
+information, permitted purpose, need-to-know access,
+safeguards and return/deletion. Default term 3 years; trade
+secrets protected while legally a trade secret. No public
+announcement without consent.
+Perpetual confidentiality for all information; residuals rights;
+compelled disclosure without notice where permitted; unusual
+non-solicit/non-compete; one-way NDA where Northstar also
+discloses.
+Client agreement
+Attach statement of work with deliverables, assumptions,
+acceptance method, fees, change control, client dependencies
+and named business owner. Invoice monthly; payment net 30.
+Background IP stays with owner; client receives defined license
+to paid deliverables.
+Unlimited rework/acceptance discretion; payment contingent on
+third party; client ownership of tools/methods; broad audit,
+benchmark, or use of Northstar name; service credits above 10%
+of fees.
+Vendor agreement
+Confirm business owner, procurement selection, security due
+diligence, insurance, service levels, subcontractors, data
+location, breach notice and exit/data return. Seek termination for
+convenience on 30 days.
+Vendor processes personal/sensitive data, hosts production
+systems, has privileged access, or uses data to train models;
+vendor liability cap below 12 months fees for its
+confidentiality/security breach.
+3. Confidentiality and data protection
+ Classify information as Public, Internal, Confidential, or Restricted. Client records, employee files, credentials, security findings, and
+non-public financial information are at least Confidential; sensitive personal information and authentication secrets are Restricted.
+ Share only for a documented business purpose, with authorized recipients, approved storage, and least-privilege access. Use
+company-managed encrypted systems; do not place Confidential or Restricted data in personal email, consumer file sharing, or unapproved
+AI services.
+ Before a vendor or client receives personal information, confirm contract safeguards, purpose limitation, retention/deletion, incident notice,
+access controls, subprocessors, and storage/access locations with Privacy and Security.
+ Report suspected loss, misdirection, unauthorized access, or disclosure immediately to Security and Privacy; preserve evidence and do
+not notify an external party independently. Legal coordinates privilege, contractual notice, and regulator/client response.
+4. NDA/vendor/client quick path
+NDA: use LEG-NDA template; Legal review only needed for deviations. Vendor: Procurement owner + Security questionnaire where
+systems/data are involved + Legal approval. Client: Legal review and budget/engagement approval before proposal terms become
+binding. Store signed agreement, approvals, and obligation dates in the restricted contract repository; access by matter team and
+Legal.
+Retention and related policies
+Legal retains executed contracts and approval records for 7 years after expiry, subject to a legal hold. Do not delete held records. Privacy incidents follow the
+Security Incident Response procedure. For tax-related contract terms, consult TAX-02; for employee confidentiality and access removal, consult HR-03.
+
+
+=== top-6 passages sent to Qwen ===
+1. chunk-009-3ae196012e | Legal_Department.pdf | p.2,3
+[E1] p.2: Legal coordinates privilege, contractual notice, and regulator/client response. NDA/vendor/client quick path NDA: use LEG-NDA template; Legal review only needed for deviations. Vendor: Procurement owner + Security questionnaire where systems/data are involved + Legal approval. Client: Legal review and budget/engagement approval before proposal terms become binding. Store signed agreement, approvals, and obligation dates in the restricted contract repository; access by matter team and Legal. Retention and related policies Legal retains executed contracts and approval records for 7 years after expiry, subject to a legal hold. Do not delete held records. Privacy incidents follow the Security Incident Response procedure. For tax-related contract terms, consult TAX-02; for employee confidentiality and access removal, consult HR-03.
+[E2] p.3: NORTHSTAR ADVISORY GROUP / INTERNAL POLICY LIBRARY Legal | Controlled copy in Local AI Demonstration Library 3 / 3
+
+2. chunk-003-a2ee292e14 | Legal_Department.pdf | p.1
+[E3] p.1: Approval Obtain approvals at thresholds below; resolve open issues before signature. Written approvals stored with final clean contract and redline. Execution Authorized signatory signs; Legal or delegate confirms completed copy and obligations calendar. Fully signed PDF, effective date, renewal/notice dates, owner and repository record. Approval thresholds and escalation Exposure / term Required approval before signature Total committed fees or spend <= CAD 100,000 and term <= 24 months Department VP + budget owner; Legal confirms standard terms. CAD 100,001-500,000 or term >24 to 36 months CFO + General Counsel + department VP. > CAD 500,000; term >36 months; auto-renewal >12 months; or exclusivity CEO + CFO + General Counsel; Board approval if outside annual plan. Any uncapped liability, broad indemnity, consequential-loss exposure, IP assignment, governing law outside Canada, or material regulatory commitment General Counsel and CFO; CEO for uncapped exposure or strategic exclusivity.
+
+3. chunk-012-8d96861600 | HR_Department.pdf | p.3
+[E4] p.3: Do not delay amounts required by law pending property return. Within 10 business days HR + IT Confirm account closure, data transfer to approved owner, vendor/client access removal and equipment receipt. Retain only under schedule or legal hold. HR records, privacy and retention  Store personnel, accommodation, investigation, payroll and performance records in the access-controlled HR system or approved restricted repository; never in a shared team drive.  Managers receive only information required to manage work. Keep medical details separate from routine personnel records and limit access to HR staff managing the accommodation.  Routine personnel files are retained for 7 years after employment ends; payroll and tax records follow TAX-02 and applicable statutory periods. Litigation, complaint, audit, or investigation holds suspend deletion.  Correct inaccurate records through HR; retain audit trail. Do not promise deletion where law, contract, investigation, or hold requires retention.
+
+4. chunk-002-312e21011a | Legal_Department.pdf | p.1
+[E5] p.1: Stage Responsible / timing Required evidence Intake Business sponsor submits contract and completed intake form to Legal at least 10 business days before target signature. Counterparty, purpose, value, term, data types, delivery owner, requested date; attach all schedules. Triage Legal acknowledges within 2 business days; urgent requests require sponsor and reason. Classify as NDA, client, vendor, amendment, or other; identify privacy/security and tax flags. Review Legal redlines against approved template; business owner validates scope, price, capacity and acceptance criteria. Version-controlled redline; procurement/security/privacy reviews where triggered. Approval Obtain approvals at thresholds below; resolve open issues before signature. Written approvals stored with final clean contract and redline. Execution Authorized signatory signs; Legal or delegate confirms completed copy and obligations calendar.
+
+5. chunk-012-eccd0aef92 | Legal_Department.pdf | p.3
+[E6] p.3: Obtain General Counsel approval for any assignment. IP schedule and license/assignment wording; product owner sign-off. Unresolved legal or commercial issue at target date Sponsor may request a business decision, but cannot waive required Legal or CFO approval. General Counsel may hold execution. Decision memo, residual risk acceptance, approver and expiry/revisit date. Contract file checklist  Signed final copy matches approved redline; all schedules and order forms attached.  Approval record identifies total value, term, delegated signatory, and any accepted deviation.  Business owner is assigned for delivery, invoicing, renewals, insurance certificates, and notice deadlines.  Repository metadata includes counterparty, agreement type, effective/expiry dates, renewal/termination notice dates, governing law, value, and data/IP flags.  Legal hold status checked before destruction; hold notices override routine retention.
+
+6. chunk-013-65ddc62610 | Legal_Department.pdf | p.3
+[E7] p.3:  Repository metadata includes counterparty, agreement type, effective/expiry dates, renewal/termination notice dates, governing law, value, and data/IP flags.  Legal hold status checked before destruction; hold notices override routine retention. Authority and interpretation This policy sets internal controls and does not itself authorize a signature. Where a statute, regulator requirement, client commitment, or signed contract is stricter, consult Legal and follow the stricter applicable requirement. Only the General Counsel may approve a documented exception to this standard, with CFO or CEO approval where the matrix requires it. Questions go to the Legal intake queue. Document history: Version 1.0 issued 1 April 2026. Owner: General Counsel. Review cycle: annual and upon material change.
+
+=== prompt ===
+SYSTEM:
+Copy, word for word, every sentence that states a fact the question asks for. Use the general or standard rule, not an exception, a target, or the first date you see. If one sentence states the standard rule and also an exception, copy that whole sentence. Cite the excerpt you copied. Use a second excerpt only if the answer needs both. If no passage states the fact explicitly, return 'I don't know.' and an empty evidence_ids list.
+
+USER:
+Question:
+How long after a contract ends does Legal keep the signed copy and the approval record?
+
+Evidence:
+[E1] Legal coordinates privilege, contractual notice, and regulator/client response. NDA/vendor/client quick path NDA: use LEG-NDA template; Legal review only needed for deviations. Vendor: Procurement owner + Security questionnaire where systems/data are involved + Legal approval. Client: Legal review and budget/engagement approval before proposal terms become binding. Store signed agreement, approvals, and obligation dates in the restricted contract repository; access by matter team and Legal. Retention and related policies Legal retains executed contracts and approval records for 7 years after expiry, subject to a legal hold. Do not delete held records. Privacy incidents follow the Security Incident Response procedure. For tax-related contract terms, consult TAX-02; for employee confidentiality and access removal, consult HR-03.
+
+[E2] NORTHSTAR ADVISORY GROUP / INTERNAL POLICY LIBRARY Legal | Controlled copy in Local AI Demonstration Library 3 / 3
+
+[E3] Approval Obtain approvals at thresholds below; resolve open issues before signature. Written approvals stored with final clean contract and redline. Execution Authorized signatory signs; Legal or delegate confirms completed copy and obligations calendar. Fully signed PDF, effective date, renewal/notice dates, owner and repository record. Approval thresholds and escalation Exposure / term Required approval before signature Total committed fees or spend <= CAD 100,000 and term <= 24 months Department VP + budget owner; Legal confirms standard terms. CAD 100,001-500,000 or term >24 to 36 months CFO + General Counsel + department VP. > CAD 500,000; term >36 months; auto-renewal >12 months; or exclusivity CEO + CFO + General Counsel; Board approval if outside annual plan. Any uncapped liability, broad indemnity, consequential-loss exposure, IP assignment, governing law outside Canada, or material regulatory commitment General Counsel and CFO; CEO for uncapped exposure or strategic exclusivity.
+
+[E4] Do not delay amounts required by law pending property return. Within 10 business days HR + IT Confirm account closure, data transfer to approved owner, vendor/client access removal and equipment receipt. Retain only under schedule or legal hold. HR records, privacy and retention  Store personnel, accommodation, investigation, payroll and performance records in the access-controlled HR system or approved restricted repository; never in a shared team drive.  Managers receive only information required to manage work. Keep medical details separate from routine personnel records and limit access to HR staff managing the accommodation.  Routine personnel files are retained for 7 years after employment ends; payroll and tax records follow TAX-02 and applicable statutory periods. Litigation, complaint, audit, or investigation holds suspend deletion.  Correct inaccurate records through HR; retain audit trail. Do not promise deletion where law, contract, investigation, or hold requires retention.
+
+[E5] Stage Responsible / timing Required evidence Intake Business sponsor submits contract and completed intake form to Legal at least 10 business days before target signature. Counterparty, purpose, value, term, data types, delivery owner, requested date; attach all schedules. Triage Legal acknowledges within 2 business days; urgent requests require sponsor and reason. Classify as NDA, client, vendor, amendment, or other; identify privacy/security and tax flags. Review Legal redlines against approved template; business owner validates scope, price, capacity and acceptance criteria. Version-controlled redline; procurement/security/privacy reviews where triggered. Approval Obtain approvals at thresholds below; resolve open issues before signature. Written approvals stored with final clean contract and redline. Execution Authorized signatory signs; Legal or delegate confirms completed copy and obligations calendar.
+
+[E6] Obtain General Counsel approval for any assignment. IP schedule and license/assignment wording; product owner sign-off. Unresolved legal or commercial issue at target date Sponsor may request a business decision, but cannot waive required Legal or CFO approval. General Counsel may hold execution. Decision memo, residual risk acceptance, approver and expiry/revisit date. Contract file checklist  Signed final copy matches approved redline; all schedules and order forms attached.  Approval record identifies total value, term, delegated signatory, and any accepted deviation.  Business owner is assigned for delivery, invoicing, renewals, insurance certificates, and notice deadlines.  Repository metadata includes counterparty, agreement type, effective/expiry dates, renewal/termination notice dates, governing law, value, and data/IP flags.  Legal hold status checked before destruction; hold notices override routine retention.
+
+[E7]  Repository metadata includes counterparty, agreement type, effective/expiry dates, renewal/termination notice dates, governing law, value, and data/IP flags.  Legal hold status checked before destruction; hold notices override routine retention. Authority and interpretation This policy sets internal controls and does not itself authorize a signature. Where a statute, regulator requirement, client commitment, or signed contract is stricter, consult Legal and follow the stricter applicable requirement. Only the General Counsel may approve a documented exception to this standard, with CFO or CEO approval where the matrix requires it. Questions go to the Legal intake queue. Document history: Version 1.0 issued 1 April 2026. Owner: General Counsel. Review cycle: annual and upon material change.
