@@ -1,9 +1,10 @@
 """Helpers shared by curator.py and policy_rag.py."""
 
 import math
+from typing import Any
 
 
-def cosine_similarity(vector_a, vector_b):
+def cosine_similarity(vector_a: list[float], vector_b: list[float]) -> float:
     """Return the cosine similarity of two embedding vectors.
 
     A zero-length vector (no components, or every component zero) is an
@@ -26,7 +27,7 @@ def cosine_similarity(vector_a, vector_b):
     return dot_product / (length_a * length_b)
 
 
-def embedding_vector(payload, model):
+def embedding_vector(payload: dict[str, Any], model: str) -> list[float]:
     """Return the first embedding from an Ollama /api/embed response."""
     try:
         vector = payload["embeddings"][0]

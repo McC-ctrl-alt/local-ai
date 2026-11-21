@@ -14,7 +14,9 @@ import os
 import re
 import sys
 import time
+from collections.abc import Sequence
 from pathlib import Path
+from typing import Any
 
 import requests
 import yaml
@@ -40,7 +42,14 @@ CACHE_SCHEMA = 1
 _RERANKER = None
 
 
-def load_policy(path=POLICY_PATH):
+def load_policy(path: Path = POLICY_PATH) -> dict[str, Any]:
+    """Load a policy file and reject a department that cannot be enforced.
+
+    The file has one top-level key, ``departments``. Each department id
+    maps to ``name``, ``folder``, ``description``, ``allowed_roles`` (role
+    names), and ``rules``. A rule has ``id``, ``kind``, and ``text``.
+    One rule in every department must use ``kind: access``.
+    """
     with open(path, encoding="utf-8") as handle:
         policy = yaml.safe_load(handle)
     departments = policy.get("departments") if isinstance(policy, dict) else None
@@ -55,20 +64,25 @@ def load_policy(path=POLICY_PATH):
     return policy
 
 
-def rule_by_kind(department, kind):
+def rule_by_kind(department: dict[str, Any], kind: str) -> dict[str, Any] | None:
+    """Return the first rule of this kind, or None when the department has none."""
     for rule in department["rules"]:
         if rule.get("kind") == kind:
             return rule
     return None
 
 
-def decide_access(department, role):
+def decide_access(
+    department: dict[str, Any], role: str
+) -> tuple[bool, dict[str, Any] | None]:
+    """Return whether this role may read the department, and the access rule."""
     rule = rule_by_kind(department, "access")
     allowed = role.strip() in department["allowed_roles"]
     return allowed, rule
 
 
-def refusal_text(rule):
+def refusal_text(rule: dict[str, Any]) -> str:
+    """Format the access rule as the refusal line shown to the user."""
     return f"Refused by {rule['id']}: {rule['text']}"
 
 
@@ -103,7 +117,10 @@ def _route_entry(item, department_ids, fallback_reason):
     return department, reason or "No reason given."
 
 
-def parse_route(payload, department_ids):
+def parse_route(
+    payload: str | dict[str, Any], department_ids: set[str]
+) -> list[tuple[str, str]]:
+    """Turn router JSON into unique (department id, reason) pairs."""
     if isinstance(payload, str):
         text = payload.strip()
         if text.startswith("```"):
@@ -138,7 +155,10 @@ def parse_route(payload, department_ids):
     return routes
 
 
-def split_access(policy, role, routes):
+def split_access(
+    policy: dict[str, Any], role: str, routes: list[tuple[str, str]]
+) -> tuple[list[dict[str, Any]], list[dict[str, Any]], list[dict[str, Any]]]:
+    """Allow or refuse each routed department. A refused folder stays closed."""
     decisions = []
     for department_id, reason in routes:
         department = policy["departments"][department_id]
@@ -157,7 +177,10 @@ def split_access(policy, role, routes):
     return decisions, allowed_rows, denied_rows
 
 
-def ollama_json(messages, response_format, num_predict):
+def ollama_json(
+    messages: list[dict[str, str]], response_format: dict[str, Any], num_predict: int
+) -> dict[str, Any]:
+    """Call Qwen once and return the JSON object in its message."""
     try:
         response = requests.post(
             f"{OLLAMA_URL}/api/chat",
@@ -192,7 +215,8 @@ def ollama_json(messages, response_format, num_predict):
     return parsed
 
 
-def route_question(policy, question):
+def route_question(policy: dict[str, Any], question: str) -> list[tuple[str, str]]:
+    """Ask Qwen which departments own the question. This does not open a file."""
     department_ids = list(policy["departments"])
     schema = {
         "type": "object",
@@ -229,8 +253,10 @@ def route_question(policy, question):
     return parse_route(parsed, set(department_ids))
 
 
-def make_chunk_record(sentences, chunk_index, source):
-    # Same record as curator.py, plus the file the pages came from.
+def make_chunk_record(
+    sentences: list[tuple[str, int]], chunk_index: int, source: str
+) -> dict[str, Any]:
+    """Build one chunk record, including the file the pages came from."""
     chunk_text = " ".join(sentence for sentence, _page_number in sentences)
     page_sentences = {}
     for sentence, page_number in sentences:
@@ -256,8 +282,10 @@ def make_chunk_record(sentences, chunk_index, source):
     }
 
 
-def build_page_aware_chunks(pdf_reader, source, index_start=0):
-    # Keep sentence/page pairs while chunking, including the sentence overlap.
+def build_page_aware_chunks(
+    pdf_reader: PdfReader, source: str, index_start: int = 0
+) -> list[dict[str, Any]]:
+    """Split a PDF into chunks of about 1000 characters with about 300 of overlap."""
     page_sentences = []
     for page_number, page in enumerate(pdf_reader.pages, start=1):
         page_text = (page.extract_text() or "").replace("\n", " ")
@@ -305,7 +333,10 @@ def build_page_aware_chunks(pdf_reader, source, index_start=0):
     return page_chunks
 
 
-def load_department_chunks(folder):
+def load_department_chunks(
+    folder: Path | str,
+) -> tuple[list[Path], list[dict[str, Any]]]:
+    """Read every PDF in a department folder into chunk records."""
     folder = Path(folder)
     pdfs = sorted(folder.glob("*.pdf"))
     chunks = []
@@ -318,7 +349,8 @@ def load_department_chunks(folder):
     return pdfs, chunks
 
 
-def folder_hash(pdfs):
+def folder_hash(pdfs: list[Path]) -> str:
+    """Hash PDF names and bytes so a changed folder misses the embedding cache."""
     digest = hashlib.sha256()
     for pdf_path in pdfs:
         digest.update(pdf_path.name.encode())
@@ -326,26 +358,36 @@ def folder_hash(pdfs):
     return digest.hexdigest()
 
 
-def embed_texts(texts):
-    vectors = []
+def embed_texts(texts: list[str]) -> list[list[float]]:
+    """Embed every text in one Ollama /api/embed call, in input order."""
+    if not texts:
+        return []
     try:
-        for text in texts:
-            response = requests.post(
-                f"{OLLAMA_URL}/api/embed",
-                json={"model": EMBED_MODEL, "input": text},
-                timeout=300,
-            )
-            response.raise_for_status()
-            vectors.append(embedding_vector(response.json(), EMBED_MODEL))
-goo    except requests.ConnectionError as exc:
+        response = requests.post(
+            f"{OLLAMA_URL}/api/embed",
+            json={"model": EMBED_MODEL, "input": list(texts)},
+            timeout=300,
+        )
+    except requests.ConnectionError as exc:
         raise SystemExit(
             f"Ollama is not running at {OLLAMA_URL}. "
             f"Start it, then pull {EMBED_MODEL} and {CHAT_MODEL}."
         ) from exc
-    return vectors
+    response.raise_for_status()
+    payload = response.json()
+    try:
+        raw_vectors = payload["embeddings"]
+    except (KeyError, TypeError) as error:
+        raise ValueError(f"Ollama returned no embedding from {EMBED_MODEL}.") from error
+    if not isinstance(raw_vectors, list) or len(raw_vectors) != len(texts):
+        raise ValueError(f"Ollama returned no embedding from {EMBED_MODEL}.")
+    return [
+        embedding_vector({"embeddings": [vector]}, EMBED_MODEL) for vector in raw_vectors
+    ]
 
 
-def load_cache():
+def load_cache() -> dict[str, Any]:
+    """Load the department embedding cache, or an empty cache when it is stale."""
     if not CACHE_PATH.exists():
         return {"schema": CACHE_SCHEMA, "model": EMBED_MODEL, "departments": {}}
     with open(CACHE_PATH, encoding="utf-8") as handle:
@@ -356,7 +398,10 @@ def load_cache():
     return cache
 
 
-def embeddings_for(department_id, pdf_hash, chunks):
+def embeddings_for(
+    department_id: str, pdf_hash: str, chunks: list[dict[str, Any]]
+) -> tuple[list[list[float]], bool]:
+    """Return cached chunk embeddings, or embed the chunks and store them."""
     cache = load_cache()
     entry = cache["departments"].get(department_id, {})
     reusable = (
@@ -378,7 +423,10 @@ def embeddings_for(department_id, pdf_hash, chunks):
     return embeddings, False
 
 
-def rank_by_cosine(question, chunks, embeddings):
+def rank_by_cosine(
+    question: str, chunks: list[dict[str, Any]], embeddings: list[list[float]]
+) -> list[tuple[float, dict[str, Any]]]:
+    """Score chunks by cosine similarity to the question, highest first."""
     question_vector = embed_texts([question])[0]
     scored = [
         (cosine_similarity(question_vector, embedding), chunk)
@@ -388,8 +436,11 @@ def rank_by_cosine(question, chunks, embeddings):
     return scored
 
 
-def order_reranked(candidates, reranker_scores):
-    # candidates are (cosine_score, chunk) in cosine order.
+def order_reranked(
+    candidates: list[tuple[float, dict[str, Any]]],
+    reranker_scores: Sequence[float],
+) -> list[tuple[float, float, dict[str, Any]]]:
+    """Reorder cosine candidates by the cross-encoder score, highest first."""
     ordered = [
         (float(reranker_score), cosine_score, chunk)
         for reranker_score, (cosine_score, chunk) in zip(reranker_scores, candidates)
@@ -398,7 +449,8 @@ def order_reranked(candidates, reranker_scores):
     return ordered
 
 
-def get_reranker():
+def get_reranker() -> Any:
+    """Load the CPU cross-encoder once. Try ONNX, then PyTorch."""
     global _RERANKER
     if _RERANKER is not None:
         return _RERANKER
@@ -444,19 +496,33 @@ def get_reranker():
     return _RERANKER
 
 
-def rerank_candidates(question, candidates):
+def rerank_candidates(
+    question: str, candidates: list[tuple[float, dict[str, Any]]]
+) -> list[tuple[float, float, dict[str, Any]]]:
+    """Rerank every cosine candidate in one cross-encoder batch."""
+    if not candidates:
+        return []
     pairs = [(question, chunk["text"]) for _cosine_score, chunk in candidates]
-    scores = get_reranker().predict(pairs, batch_size=8, show_progress_bar=False)
+    scores = get_reranker().predict(
+        pairs,
+        batch_size=len(candidates),
+        show_progress_bar=False,
+    )
     return order_reranked(candidates, scores)
 
 
-def format_hit(score, chunk):
+def format_hit(score: float, chunk: dict[str, Any]) -> str:
+    """Format one ranked chunk as id, pages, score, and file name."""
     pages = ",".join(str(page) for page in chunk["page_numbers"])
     name = Path(chunk["source"]).name
     return f"{chunk['chunk_id']} p.{pages} {score:8.4f} {name}"
 
 
-def print_orders(candidates, reranked):
+def print_orders(
+    candidates: list[tuple[float, dict[str, Any]]],
+    reranked: list[tuple[float, float, dict[str, Any]]],
+) -> None:
+    """Print the cosine order beside the reranked order."""
     rows = []
     for cosine_item, rerank_item in zip(candidates, reranked):
         cosine_score, cosine_chunk = cosine_item
@@ -472,7 +538,8 @@ def print_orders(candidates, reranked):
         print(f"{rank:>2}  {left:<{width}} | {right}")
 
 
-def print_citations(result):
+def print_citations(result: dict[str, Any]) -> None:
+    """Print citation problems, then each accepted citation."""
     if not result["valid"]:
         print(f"Model answer: {result['answer']}")
         for problem in result["problems"]:
@@ -487,9 +554,12 @@ def print_citations(result):
         )
 
 
-def evidence_from(selected_chunks):
-    # One excerpt per sentence so a citation is the line that states the fact.
-    # Chunk boundaries stay the same as curator.py.
+def evidence_from(selected_chunks: list[dict[str, Any]]) -> dict[str, dict[str, Any]]:
+    """Give each selected sentence its own evidence id.
+
+    A citation is then the line that states the fact. Chunk boundaries stay
+    the same as curator.py.
+    """
     evidence = {}
     for chunk in selected_chunks:
         units = chunk.get("sentences") or [
@@ -509,15 +579,22 @@ def evidence_from(selected_chunks):
     return evidence
 
 
-def normalize_text(text):
+def normalize_text(text: str) -> str:
+    """Collapse whitespace and case so citation checks ignore formatting."""
     return " ".join(str(text).casefold().split())
 
 
-def is_abstention(answer):
+def is_abstention(answer: str) -> bool:
+    """Return whether the answer is exactly "I don't know", period optional."""
     return normalize_text(answer).rstrip(".") == "i don't know"
 
 
-def validate_citations(answer, citations, selected_chunks):
+def validate_citations(
+    answer: str,
+    citations: list[dict[str, Any]],
+    selected_chunks: list[dict[str, Any]],
+) -> tuple[bool, list[str]]:
+    """Check that every cited quote, number, and date is on the cited page."""
     if normalize_text(answer).startswith("i don't know"):
         if citations:
             return False, ["An I don't know answer cannot include a citation."]
@@ -577,7 +654,13 @@ def validate_citations(answer, citations, selected_chunks):
     return not problems, problems
 
 
-def answer_question(question, department, evidence, selected_chunks):
+def answer_question(
+    question: str,
+    department: dict[str, Any],
+    evidence: dict[str, dict[str, Any]],
+    selected_chunks: list[dict[str, Any]],
+) -> dict[str, Any]:
+    """Ask Qwen once for an answer grounded in the top reranked passages."""
     if not evidence:
         return {
             "answer": "I don't know.",
@@ -673,7 +756,10 @@ Evidence:
     }
 
 
-def print_trail(role, decisions, citations):
+def print_trail(
+    role: str, decisions: list[dict[str, Any]], citations: list[dict[str, Any]]
+) -> None:
+    """Print the role, the rules applied, the departments, and the citations."""
     print("\n--- Trail ---")
     print(f"Role: {role}")
     rule_bits = []
@@ -701,7 +787,10 @@ def print_trail(role, decisions, citations):
     print("Cited: " + ("; ".join(cited) if cited else "none"))
 
 
-def run_question(policy, role, question, case_id=None):
+def run_question(
+    policy: dict[str, Any], role: str, question: str, case_id: str | None = None
+) -> int:
+    """Route one question, enforce access, retrieve, and answer it."""
     label = f" {case_id}" if case_id else ""
     print(f"\n=== Question{label} ===")
     print(f"Role: {role}")
@@ -773,7 +862,8 @@ def run_question(policy, role, question, case_id=None):
     return 0
 
 
-def load_demo_questions():
+def load_demo_questions() -> list[dict[str, Any]]:
+    """Load the demo questions from demo_questions.json."""
     with open(DEMO_PATH, encoding="utf-8") as handle:
         questions = json.load(handle)
     if not isinstance(questions, list) or not questions:
@@ -781,24 +871,43 @@ def load_demo_questions():
     return questions
 
 
-def main(argv=None):
-    parser = argparse.ArgumentParser(description="Policy-first department RAG.")
-    parser.add_argument("--role", help="Ask one question as this role.")
-    parser.add_argument("--question", help="Ask one question instead of the demo set.")
-    parser.add_argument("--case", help="Run one demo question by id.")
+def main(argv: list[str] | None = None) -> int:
+    """Run one demo case, one role and question, or the full demo set."""
+    parser = argparse.ArgumentParser(
+        description="Policy-first department RAG.",
+        usage="%(prog)s [-h] [--case CASE | --role ROLE --question QUESTION]",
+    )
+    case_or_role = parser.add_mutually_exclusive_group()
+    case = case_or_role.add_argument(
+        "--case",
+        default=None,
+        help="Run one demo question by id.",
+    )
+    case_or_role.add_argument(
+        "--role",
+        default=None,
+        help="Ask one question as this role.",
+    )
+    # --question is the other half of the --role pair. It is exclusive with
+    # --case, and it stays valid together with --role.
+    case_or_question = parser.add_mutually_exclusive_group()
+    case_or_question._group_actions.append(case)
+    case_or_question.add_argument(
+        "--question",
+        default=None,
+        help="Ask one question instead of the demo set.",
+    )
     args = parser.parse_args(argv)
 
-    if bool(args.role) != bool(args.question):
+    if (args.role is None) != (args.question is None):
         parser.error("--role and --question are used together.")
-    if args.case and args.question:
-        parser.error("Use either --case or --role/--question.")
 
     policy = load_policy()
-    if args.question:
+    if args.question is not None:
         return run_question(policy, args.role, args.question)
 
     questions = load_demo_questions()
-    if args.case:
+    if args.case is not None:
         questions = [item for item in questions if item.get("id") == args.case]
         if not questions:
             raise SystemExit(f"No demo question with id {args.case}.")
