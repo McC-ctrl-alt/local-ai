@@ -1,22 +1,22 @@
 # Engine map
 
-`eval/run_eval.py` scores `curator_cached.py` on the ten questions in `eval/questions.yaml`. It does not call `policy_rag.py`. Search is cosine top 10, then the cross-encoder over those 10, then at most one `qwen2.5:3b` call. Nothing else retrieves passages.
+`eval/run_eval.py` scores `curator.py` on the ten questions in `eval/questions.yaml`. It does not call `policy_rag.py`. Search is cosine top 10, then the cross-encoder over those 10, then at most one `qwen2.5:3b` call. Nothing else retrieves passages.
 
 ## Stages
 
 | Stage | File | What it does | Flags and settings |
 | --- | --- | --- | --- |
 | Choose the folder | `eval/run_eval.py` | Reads the question file and scores every PDF in the folder. | `--folder` defaults to `knowledge_test/`. `--questions` defaults to `eval/questions.yaml`. `--output` defaults to `eval/results.csv`. `--dump` writes `eval/dumps/<id>.txt`. |
-| Chunk and cache | `curator_cached.py` `build_page_aware_chunks`, `load_or_build_index`, `load_corpus` | Splits each page on `". "`, packs sentences into chunks of about 1000 characters with about 300 characters of overlap, and stores one cache file per PDF under `.curator_index/`. | CLI: `--folder` defaults to `knowledge_test/`. `--pdf` indexes one file instead. `--index` only builds the cache. The eval calls `load_corpus` on every PDF in its own `--folder`. |
-| Embed | `curator_cached.py` `embed` | Embeds the question and each chunk with `nomic-embed-text` through Ollama. | `OLLAMA_URL` (default `http://localhost:11434`). Model name is `EMBED_MODEL`. |
-| Cosine top 10 | `curator_cached.py` `rank_candidates` | Keeps the 10 chunks with the highest cosine similarity. | `RAG_CANDIDATE_COUNT` (default `10`). |
-| Cross-encoder rerank | `curator_cached.py` `load_reranker`, `rerank_candidates` | Reorders those 10 on CPU. Tries ONNX, then PyTorch. The eval logs the top score as `top_rerank_score`. | `RAG_RERANKER_MODEL` (default `cross-encoder/ms-marco-MiniLM-L6-v2`). |
-| Abstain | `curator_cached.py` `ask_question` | If the top rerank score is below `-0.7`, the answer is `I don't know.` and Qwen is not called. On this folder the two no-answer questions scored `-3.37` and `-1.78`. The eight answerable questions scored from `0.32` to `7.17`. | Constant `RERANK_ABSTAIN_BELOW` (`-0.7`). Not a CLI flag. |
-| One answer call | `curator_cached.py` `generate_answer` | Sends the top 6 reranked passages to `qwen2.5:3b` (temperature 0, 128 tokens). The prompt asks for the general or standard rule, quoted from the sentence that states it, and `I don't know.` when no passage states the fact explicitly. At most two citations. The quote must appear on that page, or the answer becomes `I don't know.` | `RAG_FINAL_CONTEXT_COUNT` (default `6`). CLI: `--question`, `--compare` (prints both orders and, when it does not abstain, answers twice). |
+| Chunk and cache | `curator.py` `build_page_aware_chunks`, `load_or_build_index`, `load_corpus` | Splits each page on `". "`, packs sentences into chunks of about 1000 characters with about 300 characters of overlap, and stores one cache file per PDF under `.curator_index/`. | CLI: `--folder` defaults to `knowledge_test/`. `--pdf` indexes one file instead. `--index` only builds the cache. The eval calls `load_corpus` on every PDF in its own `--folder`. |
+| Embed | `curator.py` `embed` | Embeds the question and each chunk with `nomic-embed-text` through Ollama. | `OLLAMA_URL` (default `http://localhost:11434`). Model name is `EMBED_MODEL`. |
+| Cosine top 10 | `curator.py` `rank_candidates` | Keeps the 10 chunks with the highest cosine similarity. | `RAG_CANDIDATE_COUNT` (default `10`). |
+| Cross-encoder rerank | `curator.py` `load_reranker`, `rerank_candidates` | Reorders those 10 on CPU. Tries ONNX, then PyTorch. The eval logs the top score as `top_rerank_score`. | `RAG_RERANKER_MODEL` (default `cross-encoder/ms-marco-MiniLM-L6-v2`). |
+| Abstain | `curator.py` `ask_question` | If the top rerank score is below `-0.7`, the answer is `I don't know.` and Qwen is not called. On this folder the two no-answer questions scored `-3.37` and `-1.78`. The eight answerable questions scored from `0.32` to `7.17`. | Constant `RERANK_ABSTAIN_BELOW` (`-0.7`). Not a CLI flag. |
+| One answer call | `curator.py` `generate_answer` | Sends the top 6 reranked passages to `qwen2.5:3b` (temperature 0, 128 tokens). The prompt asks for the general or standard rule, quoted from the sentence that states it, and `I don't know.` when no passage states the fact explicitly. At most two citations. The quote must appear on that page, or the answer becomes `I don't know.` | `RAG_FINAL_CONTEXT_COUNT` (default `6`). CLI: `--question`, `--compare` (prints both orders and, when it does not abstain, answers twice). |
 | Score | `eval/run_eval.py` | Labels each row `correct`, `partial`, `wrong`, or `correct-IDK`, and checks the cited file and page. | Same flags as the folder stage. |
 | Gate | `eval/compare.py` | Compares a results CSV to the baseline. | Positional results path, default `eval/results.csv`. `--baseline` defaults to `eval/results_run4.csv`. Required for engine PRs. |
 
-`curator_cached.py` defaults to every PDF in `knowledge_test/`. `--pdf` answers one file instead. `eval/run_eval.py --folder` chooses the folder the eval scores.
+`curator.py` defaults to every PDF in `knowledge_test/`. `--pdf` answers one file instead. `eval/run_eval.py --folder` chooses the folder the eval scores.
 
 Keyword rank in the CSV is a scorer-only count in `eval/run_eval.py`. It is not used to choose passages.
 

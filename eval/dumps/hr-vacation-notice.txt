@@ -1,0 +1,80 @@
+=== expected page ===
+HR_Department.pdf page 1
+NORTHSTAR ADVISORY GROUP  /  INTERNAL POLICY LIBRARY
+HR  |  Controlled copy in Local AI Demonstration Library
+1  /  3
+HUMAN RESOURCES
+People operations, leave & employee relations standard
+DOCUMENT CONTROL
+Owner
+Director, People & Culture
+Policy ID / version
+HR-03 | 1.0
+Effective date
+1 April 2026
+Classification
+Confidential - HR Restricted
+Applies to
+Northstar Advisory Group, 150 employees; Toronto HQ and remote staff
+Purpose and workforce context
+Northstar Advisory Group is a fictional Canadian professional-services firm with 150 employees, Toronto headquarters, and remote staff. It
+provides management, data, and finance consulting with approximately CAD 32 million annual revenue. HR records are confidential and
+accessible only to authorized HR staff and managers for legitimate work purposes. This synthetic standard applies to employees; statutory
+rights and the employment agreement prevail where they provide greater protection.
+1. Onboarding
+ When
+Owner
+Required action
+Before start
+HR + hiring manager
+Approved requisition and offer; signed employment agreement; identity/right-to-work and role
+qualifications verified; province of employment recorded. Collect only required personal data.
+Day 1
+HR + IT + manager
+Create least-privilege account, MFA and equipment issue record; provide policy, safety, privacy,
+expense and security orientation; explain reporting channels and role expectations.
+Week 1
+Manager
+Confirm goals, client assignment, required training, accessibility/accommodation needs, and
+30/60/90-day check-ins.
+By day 30
+HR
+Benefits enrollment instructions and plan documents provided; confirm emergency contact, payroll tax
+forms and direct deposit in secure HR system.
+Day 90
+Manager + HR
+Probation checkpoint documented; confirm fit, support plan or written extension/decision consistent with
+agreement and applicable law.
+2. Vacation, leave and benefits
+Vacation year is January 1 to December 31. Standard entitlement is 15 working days per full year, prorated in the first year; after five
+completed years, 20 days. Statutory vacation pay and minimums are never reduced. Vacation is requested in the HR system at least 10
+business days ahead where practicable; manager responds within 5 business days, considering coverage and fairness. Carryover is limited
+to 5 days with manager approval and use by March 31; statutory entitlements follow applicable law.
+ Leave / benefit
+Internal process
+Sick / personal
+Notify manager before shift where practicable; record absence category without diagnosis. HR may request legally permitted
+documentation after repeated or extended absence.
+Protected/statutory
+leave
+Contact HR promptly; HR confirms eligibility, notice, documentation and job protection under the applicable province. Do not
+require disclosure beyond what is needed to administer leave.
+Accommodation
+Employee or representative may request at any time. HR leads an individualized, confidential process; manager receives
+functional restrictions and arrangements, not unnecessary medical details. Escalate undue-hardship questions to HR Director
+and Legal.
+Benefits
+Eligible regular employees scheduled 30+ hours/week enroll from first of month after 30 days, subject to plan terms. Employer
+pays 75% of standard health/dental premium; employee share via payroll. Life/disability coverage follows insurer terms.
+Parental / family
+HR provides applicable statutory and plan information; employee gives notice as required by law. Coordinate coverage and
+return-to-work plan without discouraging leave.
+Related controls
+Employee agreement, payroll, records retention, and access removal are controlled; see Legal policy LEG-04 for contract/confidentiality rules and Tax policy
+TAX-02 for payroll tax records and reimbursement documentation.
+
+
+=== top-6 passages sent to Qwen ===
+(none)
+=== prompt ===
+(no prompt sent)

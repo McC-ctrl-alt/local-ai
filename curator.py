@@ -14,6 +14,8 @@ import requests
 from pypdf import PdfReader
 from pypdf.errors import PdfReadError
 
+from common import cosine_similarity, embedding_vector
+
 
 ROOT = Path(__file__).resolve().parent
 DEFAULT_FOLDER = ROOT / "knowledge_test"
@@ -171,12 +173,13 @@ def pdf_page_text(pdf_path, page_number):
         if reader is None:
             reader = PdfReader(path)
             _PDF_READERS[path] = reader
-        if page_number < 1 or page_number > len(reader.pages):
-            text = ""
-        else:
-            text = reader.pages[page_number - 1].extract_text() or ""
-    except (OSError, PdfReadError):
-        text = ""
+    except (OSError, PdfReadError) as error:
+        raise ValueError(f"Could not read PDF text from {path}.") from error
+    if page_number < 1 or page_number > len(reader.pages):
+        raise ValueError(
+            f"Page {page_number} is outside {path} ({len(reader.pages)} pages)."
+        )
+    text = reader.pages[page_number - 1].extract_text() or ""
     cached[page_number] = text
     return text
 
@@ -297,7 +300,7 @@ def ollama_request(endpoint, payload):
 
 def embed(text):
     result = ollama_request("embed", {"model": EMBED_MODEL, "input": text})
-    return result["embeddings"][0]
+    return embedding_vector(result, EMBED_MODEL)
 
 
 def chat_answer(system_prompt, prompt, response_format=None, max_tokens=300):
@@ -418,12 +421,6 @@ def load_corpus(pdf_paths):
             chunks.append(tagged)
         embeddings.extend(index["embeddings"])
     return {"chunks": chunks, "embeddings": embeddings}
-
-
-def cosine_similarity(vector_a, vector_b):
-    dot_product = sum(a * b for a, b in zip(vector_a, vector_b))
-    denominator = math.hypot(*vector_a) * math.hypot(*vector_b)
-    return dot_product / denominator if denominator else 0.0
 
 
 def load_reranker():

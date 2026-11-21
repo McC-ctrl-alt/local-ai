@@ -17,6 +17,8 @@ ollama pull qwen2.5:3b
 python3 policy_rag.py
 ```
 
+Ollama must be installed separately (`ollama pull nomic-embed-text` and `ollama pull qwen2.5:3b`).
+
 One question:
 
 ```bash

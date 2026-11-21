@@ -10,7 +10,6 @@ the top 6 reranked passages with page citations.
 import argparse
 import hashlib
 import json
-import math
 import os
 import re
 import sys
@@ -20,6 +19,8 @@ from pathlib import Path
 import requests
 import yaml
 from pypdf import PdfReader
+
+from common import cosine_similarity, embedding_vector
 
 ROOT = Path(__file__).resolve().parent
 POLICY_PATH = ROOT / "policy.yaml"
@@ -176,12 +177,19 @@ def ollama_json(messages, response_format, num_predict):
         ) from exc
     response.raise_for_status()
     data = response.json()
-    content = data.get("message", {}).get("content", "")
+    try:
+        content = data["message"]["content"]
+    except (KeyError, TypeError) as error:
+        raise ValueError("Qwen returned an empty response.") from error
+    if not isinstance(content, str) or not content.strip():
+        raise ValueError("Qwen returned an empty response.")
     try:
         parsed = json.loads(content)
-    except json.JSONDecodeError:
-        parsed = {}
-    return parsed if isinstance(parsed, dict) else {}
+    except json.JSONDecodeError as error:
+        raise ValueError("Qwen returned invalid JSON.") from error
+    if not isinstance(parsed, dict):
+        raise ValueError("Qwen returned JSON that is not an object.")
+    return parsed
 
 
 def route_question(policy, question):
@@ -318,13 +326,6 @@ def folder_hash(pdfs):
     return digest.hexdigest()
 
 
-def cosine_similarity(vector_a, vector_b):
-    dot_product = sum(a * b for a, b in zip(vector_a, vector_b))
-    magnitude_a = math.sqrt(sum(a * a for a in vector_a))
-    magnitude_b = math.sqrt(sum(b * b for b in vector_b))
-    return dot_product / (magnitude_a * magnitude_b)
-
-
 def embed_texts(texts):
     vectors = []
     try:
@@ -335,8 +336,8 @@ def embed_texts(texts):
                 timeout=300,
             )
             response.raise_for_status()
-            vectors.append(response.json()["embeddings"][0])
-    except requests.ConnectionError as exc:
+            vectors.append(embedding_vector(response.json(), EMBED_MODEL))
+goo    except requests.ConnectionError as exc:
         raise SystemExit(
             f"Ollama is not running at {OLLAMA_URL}. "
             f"Start it, then pull {EMBED_MODEL} and {CHAT_MODEL}."
