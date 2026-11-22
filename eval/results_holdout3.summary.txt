@@ -1,0 +1,22 @@
+correct: 5
+partial: 0
+wrong: 6
+correct-IDK: 2
+citation accuracy: 8/13 (62%)
+avg seconds: search 0.1, rerank 3.4, answer 7.2, total 10.7
+hr-vacation-notice: Time: Search 0.2 seconds, Rerank: 2.9 seconds, Answer: 0.0 seconds
+hr-service-desk-sla: Time: Search 0.1 seconds, Rerank: 2.5 seconds, Answer: 6.1 seconds
+hr-final-pay-timing: Time: Search 0.1 seconds, Rerank: 5.7 seconds, Answer: 5.8 seconds
+legal-low-value-approval: Time: Search 0.1 seconds, Rerank: 3.7 seconds, Answer: 6.2 seconds
+legal-client-payment: Time: Search 0.1 seconds, Rerank: 3.3 seconds, Answer: 4.5 seconds
+legal-contract-retention: Time: Search 0.1 seconds, Rerank: 2.9 seconds, Answer: 14.9 seconds
+tax-balance-due: Time: Search 0.1 seconds, Rerank: 3.2 seconds, Answer: 13.6 seconds
+tax-monthly-filer-due: Time: Search 0.1 seconds, Rerank: 4.0 seconds, Answer: 17.9 seconds
+tax-meals-deductible: Time: Search 0.1 seconds, Rerank: 3.4 seconds, Answer: 0.0 seconds
+hr-overtime-premium: Time: Search 0.1 seconds, Rerank: 3.0 seconds, Answer: 0.0 seconds
+legal-pli-minimum: Time: Search 0.1 seconds, Rerank: 3.0 seconds, Answer: 14.2 seconds
+tax-qst-rate: Time: Search 0.1 seconds, Rerank: 3.3 seconds, Answer: 11.1 seconds
+hr-severance-weeks: Time: Search 0.0 seconds, Rerank: 3.0 seconds, Answer: 0.0 seconds
+needs human scoring:
+- hr-final-pay-timing [wrong] Within 10 business days HR + IT Confirm account closure, data transfer to approved owner, vendor/client access removal and equipment receipt. Retain only under schedule or legal hold.
+- legal-client-payment [wrong] On a typical client engagement, Northstar bills monthly and the client has 30 days to pay.
