@@ -1,10 +1,13 @@
 """Compare an eval results CSV to the baseline.
 
 Prints correct, wrong, IDK, and citation-hit counts, plus average search,
-rerank, and answer times. Exits 1 when any of those counts gets worse, or
-when any no-answer question gets an answer. That check does not depend on
-what the baseline said. Average times are printed and do not change the
-exit status.
+rerank, and answer times. For each question id in both files, prints the
+baseline and new top rerank score, the delta, and the label. A question is
+marked CHANGED when that score moves by more than 0.01 or the label
+changes. Exits 1 when any of those counts gets worse, or when any
+no-answer question gets an answer. That check does not depend on what the
+baseline said. Average times and the per-question lines are printed and do
+not change the exit status.
 """
 
 import argparse
@@ -74,6 +77,19 @@ def format_seconds(value):
     return f"{value:.3f}"
 
 
+def format_score(value):
+    if value is None:
+        return "n/a"
+    return f"{value:.4f}"
+
+
+def parse_score(row):
+    raw = (row.get("top_rerank_score") or "").strip()
+    if raw == "":
+        return None
+    return float(raw)
+
+
 def worse_counts(baseline, results):
     problems = []
     if results["correct"] < baseline["correct"]:
@@ -129,6 +145,43 @@ def print_times(baseline_rows, result_rows):
         print(f"{label:16} {format_seconds(before):>10} {format_seconds(after):>8} {delta:>8}")
 
 
+def print_questions(baseline_rows, result_rows):
+    """Top rerank score and label for each question id present in both files."""
+    baseline_by_id = {row["id"]: row for row in baseline_rows}
+    result_by_id = {row["id"]: row for row in result_rows}
+    print()
+    print("top rerank score:")
+    print(f"{'id':28} {'baseline':>10} {'new':>8} {'delta':>8}  label")
+    seen = set()
+    printed = False
+    for row in baseline_rows:
+        question_id = row["id"]
+        if question_id in seen or question_id not in result_by_id:
+            continue
+        seen.add(question_id)
+        printed = True
+        before_row = baseline_by_id[question_id]
+        after_row = result_by_id[question_id]
+        before = parse_score(before_row)
+        after = parse_score(after_row)
+        if before is None or after is None:
+            delta_text = "n/a"
+            moved = False
+        else:
+            delta_text = signed(after - before, 4)
+            moved = abs(float(delta_text)) > 0.01
+        label_text = f"{before_row['label']} -> {after_row['label']}"
+        mark = ""
+        if moved or before_row["label"] != after_row["label"]:
+            mark = " CHANGED"
+        print(
+            f"{question_id:28} {format_score(before):>10} {format_score(after):>8} "
+            f"{delta_text:>8}  {label_text}{mark}"
+        )
+    if not printed:
+        print("  (none)")
+
+
 def print_no_answer(baseline_rows, result_rows):
     by_id = {row["id"]: row for row in result_rows}
     print()
@@ -173,6 +226,7 @@ def main(argv=None):
     print()
     print_counts(baseline_counts, result_counts)
     print_times(baseline_rows, result_rows)
+    print_questions(baseline_rows, result_rows)
     print_no_answer(baseline_rows, result_rows)
     print()
     if problems:
