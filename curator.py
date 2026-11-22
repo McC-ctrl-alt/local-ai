@@ -311,7 +311,12 @@ def chat_answer(system_prompt, prompt, response_format=None, max_tokens=300):
             {"role": "user", "content": prompt},
         ],
         "stream": False,
-        "options": {"temperature": 0, "num_predict": max_tokens},
+        "options": {
+            "temperature": 0,
+            "seed": 42,
+            "num_ctx": 8192,
+            "num_predict": max_tokens,
+        },
     }
     if response_format is not None:
         payload["format"] = response_format
