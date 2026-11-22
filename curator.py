@@ -23,7 +23,7 @@ CACHE_DIR = ROOT / ".curator_index"
 CACHE_SCHEMA = 1
 OLLAMA_URL = os.environ.get("OLLAMA_URL", "http://localhost:11434").rstrip("/")
 EMBED_MODEL = "nomic-embed-text"
-CHAT_MODEL = os.environ.get("CURATOR_LLM", "qwen2.5:3b")
+CHAT_MODEL = "qwen2.5:3b"
 RERANKER_MODEL = os.environ.get(
     "RAG_RERANKER_MODEL", "cross-encoder/ms-marco-MiniLM-L6-v2"
 )
@@ -467,8 +467,6 @@ def generate_answer(question, ranked, pdf_name, reranked=False, quiet=False):
         "If one sentence states the standard rule and also an exception, copy that whole sentence. "
         "Cite the excerpt you copied. Use a second excerpt only if the answer needs both. "
         "If no passage states the fact explicitly, return 'I don't know.' and an empty evidence_ids list."
-        " Answer only if an excerpt states the answer for the exact item asked (same term; e.g. QST is not HST). Otherwise reply exactly 'I don't know.' with empty evidence_ids."
-        " For tables, use only the row matching the question's item."
     )
     user_prompt = f"Question:\n{question}\n\nEvidence:\n{context}" if context else ""
 
