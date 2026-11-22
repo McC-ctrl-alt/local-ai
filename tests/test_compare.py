@@ -21,7 +21,19 @@ FIELDS = [
     "search_s",
     "rerank_s",
     "answer_s",
+    "top_rerank_score",
 ]
+
+
+def question(question_id, label, score):
+    return {
+        "id": question_id,
+        "kind": "fact",
+        "answer": "a",
+        "label": label,
+        "citation_ok": "yes",
+        "top_rerank_score": score,
+    }
 
 
 def write_csv(path, rows):
@@ -133,6 +145,66 @@ class CompareTests(unittest.TestCase):
             with redirect_stdout(io.StringIO()):
                 code = compare.main([str(results_path), "--baseline", str(baseline_path)])
         self.assertEqual(code, 1)
+
+    def test_per_question_scores_match_by_id_without_changing_the_result(self):
+        baseline = [
+            question("q-score", "correct", "1.0000"),
+            question("q-tiny", "correct", "1.0000"),
+            question("q-boundary", "correct", "2.0000"),
+            question("q-down", "correct", "4.0000"),
+            question("q-over", "correct", "5.0000"),
+            question("q-exact", "partial", "1.0000"),
+            question("q-label", "wrong", "1.0000"),
+            question("q-baseline-only", "wrong", "9.0000"),
+        ]
+        results = [
+            question("q-label", "partial", "1.0000"),
+            question("q-results-only", "correct", "2.0000"),
+            question("q-exact", "correct", "1.0100"),
+            question("q-over", "correct", "5.0101"),
+            question("q-down", "correct", "3.9900"),
+            question("q-boundary", "correct", "2.0100"),
+            question("q-tiny", "correct", "1.0050"),
+            question("q-score", "correct", "0.9800"),
+        ]
+        with tempfile.TemporaryDirectory() as tmp:
+            folder = Path(tmp)
+            baseline_path = folder / "baseline.csv"
+            results_path = folder / "results.csv"
+            write_csv(baseline_path, baseline)
+            write_csv(results_path, results)
+            buffer = io.StringIO()
+            with redirect_stdout(buffer):
+                code = compare.main([str(results_path), "--baseline", str(baseline_path)])
+        self.assertEqual(code, 0)
+        lines = {}
+        for line in buffer.getvalue().splitlines():
+            if line.startswith("q-"):
+                lines[line.split()[0]] = line
+        self.assertEqual(
+            list(lines),
+            ["q-score", "q-tiny", "q-boundary", "q-down", "q-over", "q-exact", "q-label"],
+        )
+        self.assertIn("1.0000", lines["q-score"])
+        self.assertIn("0.9800", lines["q-score"])
+        self.assertIn("-0.0200", lines["q-score"])
+        self.assertIn("correct -> correct", lines["q-score"])
+        self.assertIn("CHANGED", lines["q-score"])
+        self.assertIn("+0.0050", lines["q-tiny"])
+        self.assertNotIn("CHANGED", lines["q-tiny"])
+        self.assertIn("+0.0100", lines["q-boundary"])
+        self.assertNotIn("CHANGED", lines["q-boundary"])
+        self.assertIn("-0.0100", lines["q-down"])
+        self.assertNotIn("CHANGED", lines["q-down"])
+        self.assertIn("+0.0101", lines["q-over"])
+        self.assertIn("CHANGED", lines["q-over"])
+        self.assertIn("partial -> correct", lines["q-exact"])
+        self.assertIn("CHANGED", lines["q-exact"])
+        self.assertIn("wrong -> partial", lines["q-label"])
+        self.assertIn("0.0000", lines["q-label"])
+        self.assertIn("CHANGED", lines["q-label"])
+        self.assertNotIn("q-baseline-only", buffer.getvalue())
+        self.assertNotIn("q-results-only", buffer.getvalue())
 
 
 if __name__ == "__main__":
