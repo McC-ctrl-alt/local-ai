@@ -23,7 +23,7 @@ CACHE_DIR = ROOT / ".curator_index"
 CACHE_SCHEMA = 1
 OLLAMA_URL = os.environ.get("OLLAMA_URL", "http://localhost:11434").rstrip("/")
 EMBED_MODEL = "nomic-embed-text"
-CHAT_MODEL = "qwen2.5:3b"
+CHAT_MODEL = os.environ.get("CURATOR_LLM", "qwen2.5:3b")
 RERANKER_MODEL = os.environ.get(
     "RAG_RERANKER_MODEL", "cross-encoder/ms-marco-MiniLM-L6-v2"
 )
