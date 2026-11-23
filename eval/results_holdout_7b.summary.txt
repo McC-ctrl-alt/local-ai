@@ -1,0 +1,21 @@
+correct: 6
+partial: 0
+wrong: 3
+correct-IDK: 4
+citation accuracy: 11/13 (85%)
+avg seconds: search 0.2, rerank 4.5, answer 24.6, total 29.3
+hr-vacation-notice: Time: Search 0.1 seconds, Rerank: 1.8 seconds, Answer: 0.0 seconds
+hr-service-desk-sla: Time: Search 0.0 seconds, Rerank: 1.6 seconds, Answer: 42.3 seconds
+hr-final-pay-timing: Time: Search 0.9 seconds, Rerank: 5.2 seconds, Answer: 31.3 seconds
+legal-low-value-approval: Time: Search 0.1 seconds, Rerank: 4.6 seconds, Answer: 30.7 seconds
+legal-client-payment: Time: Search 0.1 seconds, Rerank: 4.7 seconds, Answer: 34.1 seconds
+legal-contract-retention: Time: Search 0.1 seconds, Rerank: 4.4 seconds, Answer: 30.8 seconds
+tax-balance-due: Time: Search 0.1 seconds, Rerank: 4.9 seconds, Answer: 45.9 seconds
+tax-monthly-filer-due: Time: Search 0.2 seconds, Rerank: 5.7 seconds, Answer: 44.8 seconds
+tax-meals-deductible: Time: Search 0.1 seconds, Rerank: 5.6 seconds, Answer: 0.0 seconds
+hr-overtime-premium: Time: Search 0.1 seconds, Rerank: 5.4 seconds, Answer: 0.0 seconds
+legal-pli-minimum: Time: Search 0.1 seconds, Rerank: 5.0 seconds, Answer: 30.3 seconds
+tax-qst-rate: Time: Search 0.1 seconds, Rerank: 5.0 seconds, Answer: 30.0 seconds
+hr-severance-weeks: Time: Search 0.1 seconds, Rerank: 5.1 seconds, Answer: 0.0 seconds
+needs human scoring:
+- legal-client-payment [wrong] On a typical client engagement, Northstar bills monthly, and the client has 30 days to pay.
