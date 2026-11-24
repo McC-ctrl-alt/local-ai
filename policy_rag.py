@@ -680,12 +680,28 @@ Evidence:
     }
 
 
-def print_trail(
+def known_roles(policy: dict[str, Any] | None = None) -> list[str]:
+    """Roles named in policy.yaml, in department order, without duplicates."""
+    if policy is None:
+        policy = load_policy()
+    roles = []
+    for department in policy["departments"].values():
+        for role in department["allowed_roles"]:
+            if role not in roles:
+                roles.append(role)
+    return roles
+
+
+def unknown_role_message(role: str, policy: dict[str, Any] | None = None) -> str:
+    """Explain a role that policy.yaml does not list."""
+    listed = ", ".join(known_roles(policy))
+    return f"Unknown role {role!r}. Roles in policy.yaml: {listed}."
+
+
+def trail_parts(
     role: str, decisions: list[dict[str, Any]], citations: list[dict[str, Any]]
-) -> None:
-    """Print the role, the rules applied, the departments, and the citations."""
-    print("\n--- Trail ---")
-    print(f"Role: {role}")
+) -> dict[str, Any]:
+    """Role, rules, departments, and cited files for the trail."""
     rule_bits = []
     for item in decisions:
         rule_bits.append(
@@ -695,20 +711,166 @@ def print_trail(
             scope = rule_by_kind(item["department"], "scope")
             if scope:
                 rule_bits.append(f"{scope['id']} {item['department']['folder']} only")
-    print("Rules: " + "; ".join(rule_bits))
-    chosen = []
+    departments = []
     for item in decisions:
         bit = f"{item['department_id']} — {item['reason']}"
         if not item["allowed"]:
             bit += f" (refused by {item['rule']['id']})"
-        chosen.append(bit)
-    print("Departments: " + "; ".join(chosen))
+        departments.append(bit)
     cited = []
     for citation in citations:
         label = f"{Path(citation['source']).name} p. {citation['page_number']}"
         if label not in cited:
             cited.append(label)
-    print("Cited: " + ("; ".join(cited) if cited else "none"))
+    return {
+        "role": role,
+        "rules": rule_bits,
+        "departments": departments,
+        "cited": cited,
+    }
+
+
+def print_trail(
+    role: str, decisions: list[dict[str, Any]], citations: list[dict[str, Any]]
+) -> None:
+    """Print the role, the rules applied, the departments, and the citations."""
+    parts = trail_parts(role, decisions, citations)
+    print("\n--- Trail ---")
+    print(f"Role: {parts['role']}")
+    print("Rules: " + "; ".join(parts["rules"]))
+    print("Departments: " + "; ".join(parts["departments"]))
+    print("Cited: " + ("; ".join(parts["cited"]) if parts["cited"] else "none"))
+
+
+def consult(policy: dict[str, Any], role: str, question: str) -> dict[str, Any]:
+    """Route, enforce access, retrieve, and answer. Nothing is printed.
+
+    Qwen is called once, and only when a folder is opened and the top rerank
+    score is not below the cutoff. A refused role or an unmatched question
+    does not call it.
+    """
+    routes = route_question(policy, question)
+    decisions, allowed_rows, denied_rows = split_access(policy, role, routes)
+    result: dict[str, Any] = {
+        "role": role,
+        "question": question,
+        "decisions": decisions,
+        "allowed_rows": allowed_rows,
+        "denied_rows": denied_rows,
+        "opened_names": [],
+        "not_opened": [],
+        "candidates": [],
+        "reranked": [],
+        "selected": [],
+        "top_score": None,
+        "model_result": None,
+        "answer": "",
+        "citations": [],
+        "seconds": None,
+        "stage": "answered",
+    }
+    if not allowed_rows:
+        if denied_rows:
+            result["stage"] = "refused"
+            result["answer"] = " ".join(
+                refusal_text(item["rule"]) for item in denied_rows
+            )
+        else:
+            result["stage"] = "no-route"
+            result["answer"] = "I don't know."
+        return result
+
+    chunks = []
+    embeddings = []
+    for item in allowed_rows:
+        folder = ROOT / item["department"]["folder"]
+        if not folder.is_dir():
+            raise SystemExit(f"Missing department folder: {item['department']['folder']}")
+        pdfs, dept_chunks = load_department_chunks(folder)
+        result["opened_names"].extend(pdf.name for pdf in pdfs)
+        if not dept_chunks:
+            continue
+        dept_embeddings, _from_cache = embeddings_for(
+            item["department_id"], folder_hash(pdfs), dept_chunks
+        )
+        chunks.extend(dept_chunks)
+        embeddings.extend(dept_embeddings)
+
+    opened_ids = {item["department_id"] for item in allowed_rows}
+    result["not_opened"] = [
+        department["folder"]
+        for department_id, department in policy["departments"].items()
+        if department_id not in opened_ids
+    ]
+    if not chunks:
+        result["stage"] = "no-chunks"
+        result["answer"] = "I don't know."
+        return result
+
+    cosine_ranked = rank_by_cosine(question, chunks, embeddings)
+    candidates = cosine_ranked[:CANDIDATE_COUNT]
+    reranked = rerank_candidates(question, candidates)
+    selected = [
+        chunk for _rerank_score, _cosine_score, chunk in reranked[:FINAL_CONTEXT_COUNT]
+    ]
+    top_score = reranked[0][0] if reranked else None
+    result["candidates"] = candidates
+    result["reranked"] = reranked
+    result["selected"] = selected
+    result["top_score"] = top_score
+    if engine.rerank_below_cutoff(top_score):
+        result["stage"] = "cutoff"
+        result["answer"] = "I don't know."
+        return result
+
+    names = " and ".join(item["department"]["name"] for item in allowed_rows)
+    evidence = evidence_from(selected)
+    started = time.perf_counter()
+    model_result = answer_question(question, {"name": names}, evidence, selected)
+    result["seconds"] = time.perf_counter() - started
+    result["model_result"] = model_result
+    result["answer"] = model_result["delivered"]
+    result["citations"] = model_result["citations"]
+    return result
+
+
+def _print_consult(result: dict[str, Any]) -> None:
+    """Print consult() in the same shape policy_rag.py has always used."""
+    for item in result["denied_rows"]:
+        print(refusal_text(item["rule"]))
+    stage = result["stage"]
+    if stage == "refused":
+        print("No documents opened. Answer call skipped.")
+        print_trail(result["role"], result["decisions"], [])
+        return
+    if stage == "no-route":
+        print("Answer: I don't know.")
+        print("No documents opened. Answer call skipped.")
+        print_trail(result["role"], result["decisions"], [])
+        return
+
+    print("Opened: " + ", ".join(result["opened_names"]))
+    print("Not opened: " + ", ".join(result["not_opened"]))
+    if stage == "no-chunks":
+        print("Answer: I don't know.")
+        print_trail(result["role"], result["decisions"], [])
+        return
+
+    print_orders(result["candidates"], result["reranked"])
+    if stage == "cutoff":
+        print(
+            f"Top rerank score {result['top_score']:.4f} is below {engine.RERANK_ABSTAIN_BELOW}."
+        )
+        print("Answer: I don't know.")
+        print_trail(result["role"], result["decisions"], [])
+        return
+
+    print(f"One {CHAT_MODEL} call uses reranked top {len(result['selected'])}.")
+    model_result = result["model_result"]
+    print(f"\nAnswer: {model_result['delivered']}")
+    print_citations(model_result)
+    print(f"Generation time: {result['seconds']:.2f}s")
+    print_trail(result["role"], result["decisions"], model_result["citations"])
 
 
 def run_question(
@@ -721,78 +883,11 @@ def run_question(
     print(f"Question: {question}")
 
     try:
-        routes = route_question(policy, question)
+        result = consult(policy, role, question)
     except (ValueError, json.JSONDecodeError) as exc:
         print(f"Router failed ({exc}). No documents opened.")
         return 1
-
-    decisions, allowed_rows, denied_rows = split_access(policy, role, routes)
-    for item in denied_rows:
-        print(refusal_text(item["rule"]))
-    if not allowed_rows:
-        if not denied_rows:
-            print("Answer: I don't know.")
-        print("No documents opened. Answer call skipped.")
-        print_trail(role, decisions, [])
-        return 0
-
-    chunks = []
-    embeddings = []
-    opened_names = []
-    for item in allowed_rows:
-        folder = ROOT / item["department"]["folder"]
-        if not folder.is_dir():
-            raise SystemExit(f"Missing department folder: {item['department']['folder']}")
-        pdfs, dept_chunks = load_department_chunks(folder)
-        opened_names.extend(pdf.name for pdf in pdfs)
-        if not dept_chunks:
-            continue
-        dept_embeddings, _from_cache = embeddings_for(
-            item["department_id"], folder_hash(pdfs), dept_chunks
-        )
-        chunks.extend(dept_chunks)
-        embeddings.extend(dept_embeddings)
-
-    opened_ids = {item["department_id"] for item in allowed_rows}
-    not_opened = [
-        department["folder"]
-        for department_id, department in policy["departments"].items()
-        if department_id not in opened_ids
-    ]
-    print("Opened: " + ", ".join(opened_names))
-    print("Not opened: " + ", ".join(not_opened))
-
-    if not chunks:
-        print("Answer: I don't know.")
-        print_trail(role, decisions, [])
-        return 0
-
-    cosine_ranked = rank_by_cosine(question, chunks, embeddings)
-    candidates = cosine_ranked[:CANDIDATE_COUNT]
-    reranked = rerank_candidates(question, candidates)
-    selected = [
-        chunk for _rerank_score, _cosine_score, chunk in reranked[:FINAL_CONTEXT_COUNT]
-    ]
-    print_orders(candidates, reranked)
-    top_score = reranked[0][0] if reranked else None
-    if engine.rerank_below_cutoff(top_score):
-        print(
-            f"Top rerank score {top_score:.4f} is below {engine.RERANK_ABSTAIN_BELOW}."
-        )
-        print("Answer: I don't know.")
-        print_trail(role, decisions, [])
-        return 0
-    print(f"One {CHAT_MODEL} call uses reranked top {len(selected)}.")
-
-    names = " and ".join(item["department"]["name"] for item in allowed_rows)
-    evidence = evidence_from(selected)
-    started = time.perf_counter()
-    result = answer_question(question, {"name": names}, evidence, selected)
-    seconds = time.perf_counter() - started
-    print(f"\nAnswer: {result['delivered']}")
-    print_citations(result)
-    print(f"Generation time: {seconds:.2f}s")
-    print_trail(role, decisions, result["citations"])
+    _print_consult(result)
     return 0
 
 
