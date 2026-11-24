@@ -1,5 +1,6 @@
 import io
 import json
+import os
 import tempfile
 import unittest
 from contextlib import redirect_stdout
@@ -8,6 +9,8 @@ from unittest.mock import patch
 
 from pypdf import PdfReader
 
+import engine
+import policy_rag
 from policy_rag import (
     build_page_aware_chunks,
     decide_access,
@@ -17,6 +20,7 @@ from policy_rag import (
     order_reranked,
     parse_route,
     refusal_text,
+    route_question,
     run_question,
     split_access,
     validate_citations,
@@ -287,6 +291,214 @@ class PolicyTests(unittest.TestCase):
                 "Review takes 10 business days, and I don't know the meal rate."
             )
         )
+
+    def _policy_sentences(self, department_id):
+        department = self.policy["departments"][department_id]
+        sentences = [department["description"]]
+        sentences.extend(
+            rule["text"] for rule in department["rules"] if rule["kind"] == "content"
+        )
+        return sentences
+
+    def _twelve_tax_chunks(self):
+        chunks = []
+        for index in range(12):
+            text = f"fact {index} about the estimated tax voucher"
+            chunks.append(
+                {
+                    "chunk_id": f"chunk-{index:03d}-abc",
+                    "source": "docs/tax/estimated-tax-calendar.pdf",
+                    "page_numbers": [2],
+                    "page_segments": [{"page_number": 2, "text": text}],
+                    "sentences": [{"page_number": 2, "text": text}],
+                    "text": text,
+                }
+            )
+        return chunks
+
+    def _embed_fact(self, text):
+        if text.startswith("fact "):
+            return [float(text.split()[1]), 1.0]
+        return [1.0, 0.0]
+
+    def test_router_reads_policy_text_and_does_not_call_qwen(self):
+        # "remote work" is not one of the five demo questions. Litigation
+        # hold is not mapped to a department by hand.
+        with patch("engine.chat_answer") as chat, patch("requests.post") as post:
+            tax = route_question(
+                self.policy,
+                "When is the second quarterly estimated tax voucher due?",
+            )
+            remote = route_question(self.policy, "What is the remote work limit?")
+            both = route_question(
+                self.policy,
+                "Using the contract review standard, how many business days do we "
+                "have to review a standard vendor contract, and what percentage of "
+                "a client business meal is deductible?",
+            )
+            unmatched = route_question(
+                self.policy,
+                "How many years must the firm keep litigation hold notices?",
+            )
+        chat.assert_not_called()
+        post.assert_not_called()
+        self.assertEqual([item[0] for item in tax], ["tax"])
+        self.assertEqual([item[0] for item in remote], ["hr"])
+        self.assertEqual([item[0] for item in both], ["tax", "legal"])
+        self.assertEqual(unmatched, [])
+        for department_id, reason in tax + remote + both:
+            self.assertIn(reason, self._policy_sentences(department_id))
+
+    def test_refused_role_does_not_call_qwen_or_open_a_folder(self):
+        with (
+            patch("engine.chat_answer") as chat,
+            patch("engine.embed") as embed,
+            patch("policy_rag.load_department_chunks") as load_chunks,
+            patch("requests.post") as post,
+        ):
+            buffer = io.StringIO()
+            with redirect_stdout(buffer):
+                status = run_question(
+                    self.policy,
+                    "tax_analyst",
+                    "What marking must the subject line include when an email seeks legal advice?",
+                )
+        self.assertEqual(status, 0)
+        chat.assert_not_called()
+        embed.assert_not_called()
+        post.assert_not_called()
+        load_chunks.assert_not_called()
+        output = buffer.getvalue()
+        self.assertIn("Refused by LEG-01:", output)
+        self.assertIn("Cited: none", output)
+
+    def test_policy_chunks_use_the_engine_text(self):
+        reader = PdfReader(str(ROOT / "docs" / "tax" / "estimated-tax-calendar.pdf"))
+        policy_chunks = build_page_aware_chunks(
+            reader, "docs/tax/estimated-tax-calendar.pdf"
+        )
+        engine_chunks = engine.build_page_aware_chunks(reader)
+        self.assertEqual(
+            [chunk["text"] for chunk in policy_chunks],
+            [chunk["text"] for chunk in engine_chunks],
+        )
+        self.assertTrue(policy_chunks[0]["source"].startswith("docs/tax/"))
+
+    def test_allowed_question_keeps_cosine_rerank_and_one_qwen_call(self):
+        chunks = self._twelve_tax_chunks()
+
+        class Reranker:
+            def __init__(self):
+                self.pairs = None
+                self.batch_size = None
+
+            def predict(self, pairs, batch_size=8):
+                self.pairs = list(pairs)
+                self.batch_size = batch_size
+                return [1.0 + index for index in range(len(pairs))]
+
+        reranker = Reranker()
+        body = json.dumps({"answer": "I don't know.", "evidence_ids": []})
+        policy_rag._RERANKER = None
+        try:
+            with tempfile.TemporaryDirectory() as tmp:
+                with (
+                    patch("engine.embed", side_effect=self._embed_fact),
+                    patch("engine.load_reranker", return_value=reranker),
+                    patch(
+                        "engine.ollama_request",
+                        return_value={"message": {"content": body}},
+                    ) as request,
+                    patch(
+                        "policy_rag.load_department_chunks",
+                        return_value=(
+                            [Path("estimated-tax-calendar.pdf")],
+                            chunks,
+                        ),
+                    ) as load_chunks,
+                    patch("policy_rag.folder_hash", return_value="abc"),
+                    patch("policy_rag.CACHE_PATH", Path(tmp) / "cache.json"),
+                    patch("requests.post") as post,
+                ):
+                    buffer = io.StringIO()
+                    with redirect_stdout(buffer):
+                        status = run_question(
+                            self.policy,
+                            "tax_analyst",
+                            "When is the second quarterly estimated tax voucher due?",
+                        )
+        finally:
+            policy_rag._RERANKER = None
+
+        self.assertEqual(status, 0)
+        post.assert_not_called()
+        self.assertEqual(request.call_count, 1)
+        endpoint, payload = request.call_args.args
+        self.assertEqual(endpoint, "chat")
+        self.assertEqual(payload["model"], os.environ.get("CURATOR_LLM", "qwen2.5:3b"))
+        self.assertEqual(payload["model"], engine.CHAT_MODEL)
+        self.assertEqual(
+            payload["options"],
+            {"temperature": 0, "seed": 42, "num_ctx": 8192, "num_predict": 220},
+        )
+        load_chunks.assert_called_once()
+        self.assertTrue(str(load_chunks.call_args.args[0]).endswith("docs/tax"))
+        self.assertEqual(len(reranker.pairs), 10)
+        self.assertEqual(reranker.batch_size, 8)
+        self.assertTrue(reranker.pairs[0][1].startswith("fact 11 "))
+        self.assertTrue(
+            all(not pair[1].startswith("fact 0 ") for pair in reranker.pairs)
+        )
+        self.assertIn("cosine: chunk, page, score", buffer.getvalue())
+
+    def test_rerank_cutoff_skips_the_qwen_call(self):
+        chunks = self._twelve_tax_chunks()
+
+        class Reranker:
+            def __init__(self):
+                self.pairs = None
+
+            def predict(self, pairs, batch_size=8):
+                self.pairs = list(pairs)
+                self.batch_size = batch_size
+                return [-2.0 for _pair in pairs]
+
+        reranker = Reranker()
+        policy_rag._RERANKER = None
+        try:
+            with tempfile.TemporaryDirectory() as tmp:
+                with (
+                    patch("engine.embed", side_effect=self._embed_fact),
+                    patch("engine.load_reranker", return_value=reranker),
+                    patch("engine.ollama_request") as request,
+                    patch(
+                        "policy_rag.load_department_chunks",
+                        return_value=(
+                            [Path("estimated-tax-calendar.pdf")],
+                            chunks,
+                        ),
+                    ),
+                    patch("policy_rag.folder_hash", return_value="abc"),
+                    patch("policy_rag.CACHE_PATH", Path(tmp) / "cache.json"),
+                ):
+                    buffer = io.StringIO()
+                    with redirect_stdout(buffer):
+                        status = run_question(
+                            self.policy,
+                            "tax_analyst",
+                            "When is the second quarterly estimated tax voucher due?",
+                        )
+        finally:
+            policy_rag._RERANKER = None
+
+        self.assertEqual(status, 0)
+        request.assert_not_called()
+        self.assertEqual(len(reranker.pairs), 10)
+        self.assertEqual(reranker.batch_size, 8)
+        output = buffer.getvalue()
+        self.assertIn("below -0.7", output)
+        self.assertIn("Answer: I don't know.", output)
+        self.assertNotIn("One ", output)
 
     def test_builder_round_trip(self):
         with tempfile.TemporaryDirectory() as tmp:

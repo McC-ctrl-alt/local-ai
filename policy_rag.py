@@ -1,16 +1,15 @@
 """Policy-first RAG.
 
-A question and a role are checked against policy.yaml. One short Qwen call
-lists the departments the question needs. Python allows or refuses each one.
-Only allowed folders are opened. Cosine keeps the top 10 chunks, the
-cross-encoder reranker reorders them, and one qwen2.5:3b call answers from
-the top 6 reranked passages with page citations.
+A question and a role are checked against policy.yaml. Departments come from
+the words in that file, not from a second model call. Python allows or
+refuses each one. Only allowed folders are opened. engine.py embeds them,
+keeps the cosine top 10, reranks those 10, and abstains when the top score
+is below -0.7. Otherwise one Qwen call answers from the top 6 passages.
 """
 
 import argparse
 import hashlib
 import json
-import os
 import re
 import sys
 import time
@@ -18,28 +17,41 @@ from collections.abc import Sequence
 from pathlib import Path
 from typing import Any
 
-import requests
 import yaml
 from pypdf import PdfReader
 
-from common import cosine_similarity, embedding_vector
+import engine
 
 ROOT = Path(__file__).resolve().parent
 POLICY_PATH = ROOT / "policy.yaml"
 DEMO_PATH = ROOT / "demo_questions.json"
 CACHE_PATH = ROOT / "policy_embeddings.json"
-OLLAMA_URL = os.environ.get("OLLAMA_URL", "http://localhost:11434").rstrip("/")
-EMBED_MODEL = "nomic-embed-text"
-CHAT_MODEL = "qwen2.5:3b"
-# Same knobs and model as curator.py.
-CANDIDATE_COUNT = int(os.environ.get("RAG_CANDIDATE_COUNT", "10"))
-FINAL_CONTEXT_COUNT = int(os.environ.get("RAG_FINAL_CONTEXT_COUNT", "6"))
-RERANKER_MODEL = os.environ.get(
-    "RAG_RERANKER_MODEL",
-    "cross-encoder/ms-marco-MiniLM-L6-v2",
-)
+OLLAMA_URL = engine.OLLAMA_URL
+EMBED_MODEL = engine.EMBED_MODEL
+CHAT_MODEL = engine.CHAT_MODEL
+CANDIDATE_COUNT = engine.CANDIDATE_COUNT
+FINAL_CONTEXT_COUNT = engine.FINAL_CONTEXT_COUNT
+RERANKER_MODEL = engine.RERANKER_MODEL
 CACHE_SCHEMA = 1
 _RERANKER = None
+
+# Routing compares question words to policy.yaml. These words show up in
+# almost every department, so they do not choose one.
+_ROUTE_STOP = frozenset(
+    {
+        "a", "an", "the", "of", "and", "or", "to", "for", "in", "on", "by",
+        "with", "from", "that", "this", "is", "are", "be", "may", "only",
+        "when", "how", "what", "does", "do", "did", "it", "its", "not", "any",
+        "other", "into", "about", "than", "then", "must", "their", "them",
+        "your", "our", "we", "you", "have", "has", "been", "after", "before",
+        "which", "who", "whom", "whose", "why", "where", "will", "can",
+        "could", "should", "would", "using", "use", "used", "each", "per",
+        "via", "within", "without", "under", "over", "also", "such", "these",
+        "those", "there", "here", "policy", "policies", "folder", "document",
+        "documents", "controlled", "answer", "read", "role", "roles",
+        "include", "including", "between", "during", "while", "both", "same",
+    }
+)
 
 
 def load_policy(path: Path = POLICY_PATH) -> dict[str, Any]:
@@ -86,19 +98,90 @@ def refusal_text(rule: dict[str, Any]) -> str:
     return f"Refused by {rule['id']}: {rule['text']}"
 
 
-def router_prompt(policy, question):
-    lines = [
-        "Return the smallest set of departments that own this question.",
-        "Include a department only when its description matches the question.",
-        "If two descriptions match, list both. If one matches, list only that one.",
-        "Each reason is a short topic name. Do not answer the question.",
-        "Do not include a number, a date, or a rule.",
-        "Departments:",
+def _route_keep(policy: dict[str, Any]) -> set[str]:
+    """Department ids and names stay matchable even when they are short."""
+    keep = set()
+    for department_id, department in policy["departments"].items():
+        keep.add(department_id.casefold())
+        keep.add(str(department["name"]).casefold())
+    return keep
+
+
+def _route_keys(text: str, keep_short: set[str]) -> set[str]:
+    """Normalize words so 'deduction' and 'deductible' can meet."""
+    keys = set()
+    for word in re.findall(r"[a-z0-9]+", text.casefold()):
+        if word in _ROUTE_STOP:
+            continue
+        if len(word) < 3 and word not in keep_short:
+            continue
+        original = word
+        if word.endswith("ies") and len(word) > 5:
+            word = word[:-3] + "y"
+        elif word.endswith("es") and len(word) > 5 and not word.endswith(("ss", "us")):
+            word = word[:-2]
+        elif word.endswith("s") and not word.endswith("ss") and len(word) > 4:
+            word = word[:-1]
+        if len(word) < 3 and original not in keep_short:
+            continue
+        if original in keep_short:
+            keys.add(original)
+        keys.add(word[:6])
+    return keys
+
+
+def _department_route_text(department_id: str, department: dict[str, Any]) -> str:
+    """Policy text and file names for one department. File bodies stay closed."""
+    parts = [department_id, department["name"], department["description"]]
+    for rule in department["rules"]:
+        if rule.get("kind") == "content":
+            parts.append(rule["text"])
+    folder = ROOT / department["folder"]
+    if folder.is_dir():
+        parts.extend(path.stem.replace("-", " ") for path in engine.list_pdfs(folder))
+    return "\n".join(parts)
+
+
+def _reason_for(
+    department: dict[str, Any], question_keys: set[str], keep_short: set[str]
+) -> str:
+    """Use the policy sentence that shares the most words with the question."""
+    candidates = [department["description"]]
+    candidates.extend(
+        rule["text"] for rule in department["rules"] if rule.get("kind") == "content"
+    )
+    best = candidates[0]
+    best_overlap = len(_route_keys(best, keep_short) & question_keys)
+    for text in candidates[1:]:
+        overlap = len(_route_keys(text, keep_short) & question_keys)
+        if overlap > best_overlap:
+            best = text
+            best_overlap = overlap
+    return " ".join(str(best).split())
+
+
+def route_question(policy: dict[str, Any], question: str) -> list[tuple[str, str]]:
+    """Pick departments from policy.yaml. This does not call Qwen or open a file.
+
+    A department needs two shared words, otherwise the single best match.
+    Nothing is hardcoded to a question. No shared words means no department.
+    """
+    keep_short = _route_keep(policy)
+    question_keys = _route_keys(question, keep_short)
+    scored = []
+    for department_id, department in policy["departments"].items():
+        overlap = _route_keys(
+            _department_route_text(department_id, department), keep_short
+        ) & question_keys
+        scored.append((len(overlap), department_id, department))
+    chosen = [item for item in scored if item[0] >= 2]
+    if not chosen:
+        best = max((item[0] for item in scored), default=0)
+        chosen = [item for item in scored if item[0] == best and best >= 1]
+    return [
+        (department_id, _reason_for(department, question_keys, keep_short))
+        for _count, department_id, department in chosen
     ]
-    for dept_id, department in policy["departments"].items():
-        lines.append(f"- {dept_id}: {department['description']}")
-    lines.append(f"Question: {question}")
-    return "\n".join(lines)
 
 
 def _route_entry(item, department_ids, fallback_reason):
@@ -180,28 +263,21 @@ def split_access(
 def ollama_json(
     messages: list[dict[str, str]], response_format: dict[str, Any], num_predict: int
 ) -> dict[str, Any]:
-    """Call Qwen once and return the JSON object in its message."""
+    """Call Qwen once through engine.chat_answer and return its JSON object."""
+    system = ""
+    user = ""
+    for message in messages:
+        if message.get("role") == "system":
+            system = message.get("content", "")
+        elif message.get("role") == "user":
+            user = message.get("content", "")
     try:
-        response = requests.post(
-            f"{OLLAMA_URL}/api/chat",
-            json={
-                "model": CHAT_MODEL,
-                "format": response_format,
-                "messages": messages,
-                "stream": False,
-                "options": {"temperature": 0, "num_predict": num_predict},
-            },
-            timeout=300,
-        )
-    except requests.ConnectionError as exc:
+        content = engine.chat_answer(system, user, response_format, num_predict)
+    except RuntimeError as exc:
         raise SystemExit(
             f"Ollama is not running at {OLLAMA_URL}. "
             f"Start it, then pull {EMBED_MODEL} and {CHAT_MODEL}."
         ) from exc
-    response.raise_for_status()
-    data = response.json()
-    try:
-        content = data["message"]["content"]
     except (KeyError, TypeError) as error:
         raise ValueError("Qwen returned an empty response.") from error
     if not isinstance(content, str) or not content.strip():
@@ -215,122 +291,13 @@ def ollama_json(
     return parsed
 
 
-def route_question(policy: dict[str, Any], question: str) -> list[tuple[str, str]]:
-    """Ask Qwen which departments own the question. This does not open a file."""
-    department_ids = list(policy["departments"])
-    schema = {
-        "type": "object",
-        "properties": {
-            "departments": {
-                "type": "array",
-                "minItems": 1,
-                "items": {
-                    "type": "object",
-                    "properties": {
-                        "department": {"type": "string", "enum": department_ids},
-                        "reason": {"type": "string"},
-                    },
-                    "required": ["department", "reason"],
-                },
-            }
-        },
-        "required": ["departments"],
-    }
-    parsed = ollama_json(
-        [
-            {
-                "role": "system",
-                "content": (
-                    "Return only departments whose descriptions match the question. "
-                    "A reason is a topic name, not an answer."
-                ),
-            },
-            {"role": "user", "content": router_prompt(policy, question)},
-        ],
-        schema,
-        num_predict=140,
-    )
-    return parse_route(parsed, set(department_ids))
-
-
-def make_chunk_record(
-    sentences: list[tuple[str, int]], chunk_index: int, source: str
-) -> dict[str, Any]:
-    """Build one chunk record, including the file the pages came from."""
-    chunk_text = " ".join(sentence for sentence, _page_number in sentences)
-    page_sentences = {}
-    for sentence, page_number in sentences:
-        page_sentences.setdefault(page_number, []).append(sentence)
-    page_segments = [
-        {
-            "page_number": page_number,
-            "text": " ".join(page_sentences[page_number]),
-        }
-        for page_number in sorted(page_sentences)
-    ]
-    content_hash = hashlib.sha256(chunk_text.encode("utf-8")).hexdigest()[:10]
-    return {
-        "chunk_id": f"chunk-{chunk_index:03d}-{content_hash}",
-        "source": source,
-        "page_numbers": [segment["page_number"] for segment in page_segments],
-        "page_segments": page_segments,
-        "sentences": [
-            {"page_number": page_number, "text": sentence}
-            for sentence, page_number in sentences
-        ],
-        "text": chunk_text,
-    }
-
-
 def build_page_aware_chunks(
     pdf_reader: PdfReader, source: str, index_start: int = 0
 ) -> list[dict[str, Any]]:
-    """Split a PDF into chunks of about 1000 characters with about 300 of overlap."""
-    page_sentences = []
-    for page_number, page in enumerate(pdf_reader.pages, start=1):
-        page_text = (page.extract_text() or "").replace("\n", " ")
-        page_sentences.extend(
-            (sentence.strip(), page_number)
-            for sentence in page_text.split(". ")
-            if sentence.strip()
-        )
-
-    page_chunks = []
-    current_sentences = []
-
-    for sentence, page_number in page_sentences:
-        current_text = " ".join(item[0] for item in current_sentences)
-        if current_sentences and len(current_text) + 1 + len(sentence) > 1000:
-            page_chunks.append(
-                make_chunk_record(
-                    current_sentences,
-                    index_start + len(page_chunks),
-                    source,
-                )
-            )
-
-            overlap = []
-            overlap_length = 0
-            for previous_sentence in reversed(current_sentences):
-                previous_length = len(previous_sentence[0])
-                if overlap_length + previous_length > 300:
-                    break
-                overlap.insert(0, previous_sentence)
-                overlap_length += previous_length
-            current_sentences = overlap
-
-        current_sentences.append((sentence, page_number))
-
-    if current_sentences:
-        page_chunks.append(
-            make_chunk_record(
-                current_sentences,
-                index_start + len(page_chunks),
-                source,
-            )
-        )
-
-    return page_chunks
+    """Chunk with engine.py, then keep the file name and the sentences."""
+    return engine.build_page_aware_chunks(
+        pdf_reader, source=source, index_start=index_start
+    )
 
 
 def load_department_chunks(
@@ -338,7 +305,7 @@ def load_department_chunks(
 ) -> tuple[list[Path], list[dict[str, Any]]]:
     """Read every PDF in a department folder into chunk records."""
     folder = Path(folder)
-    pdfs = sorted(folder.glob("*.pdf"))
+    pdfs = engine.list_pdfs(folder)
     chunks = []
     for pdf_path in pdfs:
         source = pdf_path.resolve().relative_to(ROOT).as_posix()
@@ -359,31 +326,16 @@ def folder_hash(pdfs: list[Path]) -> str:
 
 
 def embed_texts(texts: list[str]) -> list[list[float]]:
-    """Embed every text in one Ollama /api/embed call, in input order."""
+    """Embed each text with engine.embed, in input order."""
     if not texts:
         return []
     try:
-        response = requests.post(
-            f"{OLLAMA_URL}/api/embed",
-            json={"model": EMBED_MODEL, "input": list(texts)},
-            timeout=300,
-        )
-    except requests.ConnectionError as exc:
+        return [engine.embed(text) for text in texts]
+    except RuntimeError as exc:
         raise SystemExit(
             f"Ollama is not running at {OLLAMA_URL}. "
             f"Start it, then pull {EMBED_MODEL} and {CHAT_MODEL}."
         ) from exc
-    response.raise_for_status()
-    payload = response.json()
-    try:
-        raw_vectors = payload["embeddings"]
-    except (KeyError, TypeError) as error:
-        raise ValueError(f"Ollama returned no embedding from {EMBED_MODEL}.") from error
-    if not isinstance(raw_vectors, list) or len(raw_vectors) != len(texts):
-        raise ValueError(f"Ollama returned no embedding from {EMBED_MODEL}.")
-    return [
-        embedding_vector({"embeddings": [vector]}, EMBED_MODEL) for vector in raw_vectors
-    ]
 
 
 def load_cache() -> dict[str, Any]:
@@ -426,14 +378,11 @@ def embeddings_for(
 def rank_by_cosine(
     question: str, chunks: list[dict[str, Any]], embeddings: list[list[float]]
 ) -> list[tuple[float, dict[str, Any]]]:
-    """Score chunks by cosine similarity to the question, highest first."""
-    question_vector = embed_texts([question])[0]
-    scored = [
-        (cosine_similarity(question_vector, embedding), chunk)
-        for chunk, embedding in zip(chunks, embeddings)
-    ]
-    scored.sort(key=lambda item: item[0], reverse=True)
-    return scored
+    """Cosine top 10 from engine.rank_candidates, highest first."""
+    ranked = engine.rank_candidates(
+        question, {"chunks": chunks, "embeddings": embeddings}
+    )
+    return [(score, chunk) for score, _chunk_index, chunk in ranked]
 
 
 def order_reranked(
@@ -450,65 +399,40 @@ def order_reranked(
 
 
 def get_reranker() -> Any:
-    """Load the CPU cross-encoder once. Try ONNX, then PyTorch."""
+    """Load the engine's CPU cross-encoder once. Try ONNX, then PyTorch."""
     global _RERANKER
     if _RERANKER is not None:
         return _RERANKER
-    os.environ.setdefault("HF_HUB_DISABLE_PROGRESS_BARS", "1")
-    os.environ.setdefault("TRANSFORMERS_VERBOSITY", "error")
-    import warnings
-
-    warnings.filterwarnings("ignore", message=".*unauthenticated requests.*")
     try:
-        from sentence_transformers import CrossEncoder
-        from transformers.utils import logging as transformers_logging
-
-        transformers_logging.disable_progress_bar()
+        _RERANKER = engine.load_reranker()
     except ImportError as exc:
         raise SystemExit(
             "sentence-transformers is not installed. "
             "Run: pip install -r requirements.txt"
         ) from exc
-    try:
-        _RERANKER = CrossEncoder(
-            RERANKER_MODEL,
-            backend="onnx",
-            device="cpu",
-            local_files_only=False,
-        )
-    except Exception:
-        print(
-            "ONNX reranker extra is not installed. "
-            f"Loading {RERANKER_MODEL} with PyTorch."
-        )
-        try:
-            _RERANKER = CrossEncoder(
-                RERANKER_MODEL,
-                backend="torch",
-                device="cpu",
-                local_files_only=False,
-            )
-        except Exception as exc:
-            raise RuntimeError(
-                f"Reranker model '{RERANKER_MODEL}' is not available locally. "
-                "Download it before running offline."
-            ) from exc
+    except Exception as exc:
+        raise RuntimeError(
+            f"Reranker model '{RERANKER_MODEL}' is not available locally. "
+            "Download it before running offline."
+        ) from exc
     return _RERANKER
 
 
 def rerank_candidates(
     question: str, candidates: list[tuple[float, dict[str, Any]]]
 ) -> list[tuple[float, float, dict[str, Any]]]:
-    """Rerank every cosine candidate in one cross-encoder batch."""
+    """Rerank the cosine top 10 with engine.rerank_candidates."""
     if not candidates:
         return []
-    pairs = [(question, chunk["text"]) for _cosine_score, chunk in candidates]
-    scores = get_reranker().predict(
-        pairs,
-        batch_size=len(candidates),
-        show_progress_bar=False,
-    )
-    return order_reranked(candidates, scores)
+    adapted = [
+        (cosine_score, index, chunk)
+        for index, (cosine_score, chunk) in enumerate(candidates)
+    ]
+    reranked = engine.rerank_candidates(question, adapted, get_reranker())
+    return [
+        (score, cosine_score, chunk)
+        for score, cosine_score, _index, chunk in reranked
+    ]
 
 
 def format_hit(score: float, chunk: dict[str, Any]) -> str:
@@ -806,6 +730,8 @@ def run_question(
     for item in denied_rows:
         print(refusal_text(item["rule"]))
     if not allowed_rows:
+        if not denied_rows:
+            print("Answer: I don't know.")
         print("No documents opened. Answer call skipped.")
         print_trail(role, decisions, [])
         return 0
@@ -848,6 +774,14 @@ def run_question(
         chunk for _rerank_score, _cosine_score, chunk in reranked[:FINAL_CONTEXT_COUNT]
     ]
     print_orders(candidates, reranked)
+    top_score = reranked[0][0] if reranked else None
+    if engine.rerank_below_cutoff(top_score):
+        print(
+            f"Top rerank score {top_score:.4f} is below {engine.RERANK_ABSTAIN_BELOW}."
+        )
+        print("Answer: I don't know.")
+        print_trail(role, decisions, [])
+        return 0
     print(f"One {CHAT_MODEL} call uses reranked top {len(selected)}.")
 
     names = " and ".join(item["department"]["name"] for item in allowed_rows)
