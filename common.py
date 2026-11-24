@@ -1,4 +1,4 @@
-"""Helpers shared by curator.py and policy_rag.py."""
+"""Helpers shared by engine.py, curator.py, and policy_rag.py."""
 
 import math
 from typing import Any
