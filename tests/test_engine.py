@@ -12,7 +12,6 @@ from pypdf import PdfReader
 
 import curator
 import engine
-from common import cosine_similarity
 from scripts.build_docs import build_pdf
 
 
@@ -161,12 +160,8 @@ class RankingTests(unittest.TestCase):
             )
             embeddings.append(vector)
         index = {"chunks": chunks, "embeddings": embeddings}
-        with (
-            patch("engine.embed", return_value=[1.0, 0.0]),
-            patch("common.cosine_similarity") as pairwise,
-        ):
+        with patch("engine.embed", return_value=[1.0, 0.0]):
             ranked = engine.rank_candidates("same vector twice", index)
-        pairwise.assert_not_called()
         self.assertEqual([item[2]["chunk_id"] for item in ranked], ["first", "later", "other"])
         self.assertEqual([item[1] for item in ranked], [0, 1, 2])
         self.assertAlmostEqual(ranked[0][0], 1.0, places=6)
@@ -189,9 +184,25 @@ class RankingTests(unittest.TestCase):
         with self.assertRaises(ValueError) as zeros:
             run([[0.0, 0.0]])
         self.assertIn("zero-length", str(zeros.exception))
-        with self.assertRaises(ValueError) as non_finite:
-            run([[float("nan"), 1.0]])
-        self.assertIn("non-finite", str(non_finite.exception))
+        for bad in (float("nan"), float("inf"), float("-inf")):
+            with self.assertRaises(ValueError) as non_finite:
+                run([[bad, 1.0]])
+            self.assertIn("non-finite", str(non_finite.exception))
+        empty_index = {
+            "chunks": [
+                {
+                    "chunk_id": "c",
+                    "text": "t",
+                    "page_numbers": [1],
+                    "page_segments": [],
+                }
+            ],
+            "embeddings": [[]],
+        }
+        with patch("engine.embed", return_value=[]):
+            with self.assertRaises(ValueError) as empty:
+                engine.rank_candidates("question", empty_index)
+        self.assertIn("zero-length", str(empty.exception))
 
     def test_rerank_rejects_non_finite_scores(self):
         candidates = [(0.2, 0, {"text": "passage", "chunk_id": "c"})]
@@ -238,31 +249,30 @@ class RankingTests(unittest.TestCase):
 
 
 class CosineTests(unittest.TestCase):
-    def test_numpy_score_matches_the_old_formula_within_float_rounding(self):
+    def test_rank_scores_match_the_old_formula_within_float_rounding(self):
         generator = random.Random(0)
         for width in (2, 8, 768):
             for _ in range(20):
                 left = [generator.uniform(-2.0, 2.0) for _ in range(width)]
                 right = [generator.uniform(-2.0, 2.0) for _ in range(width)]
-                score = cosine_similarity(left, right)
+                index = {
+                    "chunks": [
+                        {
+                            "chunk_id": "c",
+                            "text": "t",
+                            "page_numbers": [1],
+                            "page_segments": [],
+                        }
+                    ],
+                    "embeddings": [right],
+                }
+                with patch("engine.embed", return_value=left):
+                    ranked = engine.rank_candidates("question", index)
+                score, chunk_index, chunk = ranked[0]
                 self.assertIs(type(score), float)
+                self.assertEqual(chunk_index, 0)
+                self.assertEqual(chunk["chunk_id"], "c")
                 self.assertLess(abs(score - python_cosine(left, right)), 1e-6)
-
-    def test_length_mismatch_zero_and_non_finite_still_fail(self):
-        with self.assertRaises(ValueError) as mismatch:
-            cosine_similarity([1.0, 0.0], [1.0, 0.0, 0.0])
-        self.assertIn("same length", str(mismatch.exception))
-        self.assertIn("got 2 and 3", str(mismatch.exception))
-        with self.assertRaises(ValueError) as zeros:
-            cosine_similarity([0.0, 0.0], [1.0, 0.0])
-        self.assertIn("zero-length", str(zeros.exception))
-        with self.assertRaises(ValueError) as empty:
-            cosine_similarity([], [])
-        self.assertIn("zero-length", str(empty.exception))
-        for bad in (float("nan"), float("inf"), float("-inf")):
-            with self.assertRaises(ValueError) as non_finite:
-                cosine_similarity([bad, 1.0], [1.0, 0.0])
-            self.assertIn("non-finite", str(non_finite.exception))
 
 
 class AnswerCallTests(unittest.TestCase):

@@ -12,13 +12,12 @@ import os
 import tempfile
 from io import BytesIO
 from pathlib import Path
+from typing import Any
 
 import numpy as np
 import requests
 from pypdf import PdfReader
 from pypdf.errors import PdfReadError
-
-from common import embedding_vector
 
 
 ROOT = Path(__file__).resolve().parent
@@ -143,6 +142,17 @@ def ollama_request(endpoint, payload):
     except requests.ConnectionError as error:
         raise RuntimeError("Start Ollama and run the command again.") from error
     return response.json()
+
+
+def embedding_vector(payload: dict[str, Any], model: str) -> list[float]:
+    """Return the first embedding from an Ollama /api/embed response."""
+    try:
+        vector = payload["embeddings"][0]
+    except (KeyError, IndexError, TypeError) as error:
+        raise ValueError(f"Ollama returned no embedding from {model}.") from error
+    if isinstance(vector, (str, bytes)) or len(vector) == 0:
+        raise ValueError(f"Ollama returned an empty embedding from {model}.")
+    return vector
 
 
 def embed(text):
