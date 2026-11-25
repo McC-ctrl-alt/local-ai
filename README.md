@@ -1,8 +1,8 @@
 # Policy-first RAG
 
-A question and a user role are checked against `policy.yaml`. One short call to local `qwen2.5:3b` lists every department the question needs, each with a reason. Python checks the role against each department. A department the role cannot read is refused with that access rule, and its files stay closed.
+A question and a user role are checked against `policy.yaml`. Departments come from the words in that file, each with the policy sentence that matched. Python checks the role against each department. A department the role cannot read is refused with that access rule, and its files stay closed.
 
-Allowed folders are the only ones opened. Chunking and `nomic-embed-text` follow `curator.py`. Cosine similarity keeps the top 10 chunks. The cross-encoder reranker reorders those 10, and both orders are printed side by side. One `qwen2.5:3b` call answers from the top 6 reranked passages and cites the page.
+Allowed folders are the only ones opened. Chunking, `nomic-embed-text`, cosine top 10, the CPU cross-encoder, and the -0.7 cutoff live in `engine.py`. `curator.py` and `policy_rag.py` both import it. One `qwen2.5:3b` call answers from the top 6 reranked passages and cites the page. A top rerank score below -0.7 returns "I don't know." and does not call Qwen. The call uses temperature 0, seed 42, and `num_ctx` 8192. `CURATOR_LLM` overrides the model (default `qwen2.5:3b`).
 
 Tax, Legal, and HR each have a folder, allowed roles, and a few rules. The sample firm, Aster Meridian Group, is fictional.
 
@@ -14,6 +14,12 @@ source .venv/bin/activate
 pip install -r requirements.txt
 ollama pull nomic-embed-text
 ollama pull qwen2.5:3b
+python3 demo.py --role tax_analyst --question "When is the second quarterly estimated tax voucher due?"
+```
+
+`demo.ask(question, role)` is the function a UI calls. Leave off `--role` or `--question` and the script prompts for a role, then keeps asking until the question line is blank. The role has to be one of the roles in `policy.yaml`.
+
+```bash
 python3 policy_rag.py
 ```
 
@@ -31,9 +37,9 @@ The five demo questions are in `demo_questions.json`:
 - `routed-hr` — an HR partner gets the parental-leave length.
 - `cross-dept` — counsel asks a legal question and a tax question. Legal is opened. Tax is refused under `TAX-01`.
 - `refusal` — a tax analyst asks a legal question and is refused under `LEG-01`.
-- `unknown` — counsel asks about litigation holds, which the files do not state, so the answer is "I don't know."
+- `unknown` — counsel asks about litigation holds. `policy.yaml` does not mention them, so no folder is opened and the answer is "I don't know."
 
-Each answer ends with a trail: the role, the rules applied, the departments chosen and why, and the sources cited. An allowed question also prints the cosine order beside the reranked order.
+Each `policy_rag.py` answer ends with a trail: the role, the rules applied, the departments chosen and why, and the sources cited. An allowed question also prints the cosine order beside the reranked order. `demo.py` prints the answer, the file and page, and that same trail.
 
 Regenerate the six PDFs with `python3 scripts/build_docs.py`. Checks that do not call Qwen:
 
@@ -57,4 +63,4 @@ python3 curator.py --pdf knowledge_test/HR_Department.pdf --question "What is th
 
 `curator.py --folder` defaults to `knowledge_test/` (HR, Legal, and Tax). Pass `--pdf` to index one file instead. `eval/run_eval.py` reads `eval/questions.yaml` and writes `eval/results.csv` plus `eval/summary.txt`.
 
-Engine PRs must pass `python3 eval/compare.py` before merge. It compares a results CSV to the baseline `eval/results_run4.csv`. The report shows those counts and the average search, rerank, and answer times. The command exits non-zero if any count gets worse, or if any no-answer question gets an answer.
+Engine PRs must pass `python3 eval/compare.py` before merge. It compares a results CSV to the baseline `eval/results_baseline_mac.csv`. The report shows those counts, the per-question rerank scores, and the average search, rerank, and answer times. The command exits non-zero if any count gets worse, or if any no-answer question gets an answer. A rerank score that moves by more than 0.01 is marked CHANGED on that question's line.
