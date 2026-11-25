@@ -1,7 +1,9 @@
 """Retrieval tests. Ollama and the cross-encoder are mocked, so no model is loaded."""
 
 import json
+import math
 import os
+import random
 import unittest
 from io import BytesIO
 from unittest.mock import patch
@@ -10,7 +12,16 @@ from pypdf import PdfReader
 
 import curator
 import engine
+from common import cosine_similarity
 from scripts.build_docs import build_pdf
+
+
+def python_cosine(vector_a, vector_b):
+    """The previous pure-Python score, used only to bound float drift."""
+    length_a = math.hypot(*vector_a)
+    length_b = math.hypot(*vector_b)
+    dot_product = sum(left * right for left, right in zip(vector_a, vector_b))
+    return dot_product / (length_a * length_b)
 
 
 def sentence(label, letter, count=200):
@@ -124,6 +135,82 @@ class RankingTests(unittest.TestCase):
         self.assertEqual(reranked_ids[0], "c2")
         self.assertEqual(reranked_ids[-1], "c11")
         self.assertGreater(reranked[0][0], reranked[-1][0])
+        question = [1.0, 0.0]
+        for score, chunk_index, chunk in ranked:
+            self.assertIs(type(score), float)
+            self.assertIs(type(chunk_index), int)
+            reference = python_cosine(question, self.embeddings[chunk_index])
+            self.assertLess(abs(score - reference), 1e-6)
+            self.assertEqual(chunk["chunk_id"], f"c{chunk_index}")
+
+    def test_rank_scores_every_chunk_with_one_product_and_keeps_ties(self):
+        chunks = []
+        embeddings = []
+        for name, vector in (
+            ("first", [1.0, 0.0]),
+            ("later", [1.0, 0.0]),
+            ("other", [0.0, 1.0]),
+        ):
+            chunks.append(
+                {
+                    "chunk_id": name,
+                    "text": name,
+                    "page_numbers": [1],
+                    "page_segments": [{"page_number": 1, "text": name}],
+                }
+            )
+            embeddings.append(vector)
+        index = {"chunks": chunks, "embeddings": embeddings}
+        with (
+            patch("engine.embed", return_value=[1.0, 0.0]),
+            patch("common.cosine_similarity") as pairwise,
+        ):
+            ranked = engine.rank_candidates("same vector twice", index)
+        pairwise.assert_not_called()
+        self.assertEqual([item[2]["chunk_id"] for item in ranked], ["first", "later", "other"])
+        self.assertEqual([item[1] for item in ranked], [0, 1, 2])
+        self.assertAlmostEqual(ranked[0][0], 1.0, places=6)
+        self.assertAlmostEqual(ranked[1][0], 1.0, places=6)
+        self.assertLess(abs(ranked[2][0]), 1e-6)
+
+    def test_rank_rejects_bad_vectors_before_scoring(self):
+        def run(embeddings):
+            index = {
+                "chunks": [{"chunk_id": str(i), "text": "t", "page_numbers": [1], "page_segments": []} for i in range(len(embeddings))],
+                "embeddings": embeddings,
+            }
+            with patch("engine.embed", return_value=[1.0, 0.0]):
+                engine.rank_candidates("question", index)
+
+        with self.assertRaises(ValueError) as mismatch:
+            run([[1.0, 0.0, 0.0]])
+        self.assertIn("same length", str(mismatch.exception))
+        self.assertIn("got 2 and 3", str(mismatch.exception))
+        with self.assertRaises(ValueError) as zeros:
+            run([[0.0, 0.0]])
+        self.assertIn("zero-length", str(zeros.exception))
+        with self.assertRaises(ValueError) as non_finite:
+            run([[float("nan"), 1.0]])
+        self.assertIn("non-finite", str(non_finite.exception))
+
+    def test_rerank_rejects_non_finite_scores(self):
+        candidates = [(0.2, 0, {"text": "passage", "chunk_id": "c"})]
+
+        class Scores:
+            def __init__(self, values):
+                self.values = values
+
+            def predict(self, pairs, batch_size=8):
+                self.batch_size = batch_size
+                return self.values
+
+        for values in ([float("nan")], [float("inf")], [float("-inf")]):
+            with self.assertRaises(ValueError) as caught:
+                engine.rerank_candidates("question", candidates, Scores(values))
+            self.assertIn("invalid scores", str(caught.exception))
+        reranked = engine.rerank_candidates("question", candidates, Scores([1.25]))
+        self.assertIs(type(reranked[0][0]), float)
+        self.assertEqual(reranked[0][0], 1.25)
 
     def test_reranker_loads_the_cross_encoder_on_cpu(self):
         calls = []
@@ -148,6 +235,34 @@ class RankingTests(unittest.TestCase):
         self.assertEqual(engine.RERANKER_MODEL, os.environ.get(
             "RAG_RERANKER_MODEL", "cross-encoder/ms-marco-MiniLM-L6-v2"
         ))
+
+
+class CosineTests(unittest.TestCase):
+    def test_numpy_score_matches_the_old_formula_within_float_rounding(self):
+        generator = random.Random(0)
+        for width in (2, 8, 768):
+            for _ in range(20):
+                left = [generator.uniform(-2.0, 2.0) for _ in range(width)]
+                right = [generator.uniform(-2.0, 2.0) for _ in range(width)]
+                score = cosine_similarity(left, right)
+                self.assertIs(type(score), float)
+                self.assertLess(abs(score - python_cosine(left, right)), 1e-6)
+
+    def test_length_mismatch_zero_and_non_finite_still_fail(self):
+        with self.assertRaises(ValueError) as mismatch:
+            cosine_similarity([1.0, 0.0], [1.0, 0.0, 0.0])
+        self.assertIn("same length", str(mismatch.exception))
+        self.assertIn("got 2 and 3", str(mismatch.exception))
+        with self.assertRaises(ValueError) as zeros:
+            cosine_similarity([0.0, 0.0], [1.0, 0.0])
+        self.assertIn("zero-length", str(zeros.exception))
+        with self.assertRaises(ValueError) as empty:
+            cosine_similarity([], [])
+        self.assertIn("zero-length", str(empty.exception))
+        for bad in (float("nan"), float("inf"), float("-inf")):
+            with self.assertRaises(ValueError) as non_finite:
+                cosine_similarity([bad, 1.0], [1.0, 0.0])
+            self.assertIn("non-finite", str(non_finite.exception))
 
 
 class AnswerCallTests(unittest.TestCase):

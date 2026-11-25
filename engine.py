@@ -8,17 +8,17 @@ the candidate count, or the cutoff happens in this file.
 
 import hashlib
 import json
-import math
 import os
 import tempfile
 from io import BytesIO
 from pathlib import Path
 
+import numpy as np
 import requests
 from pypdf import PdfReader
 from pypdf.errors import PdfReadError
 
-from common import cosine_similarity, embedding_vector
+from common import embedding_vector
 
 
 ROOT = Path(__file__).resolve().parent
@@ -280,18 +280,51 @@ def load_reranker():
 
 
 def rank_candidates(question, index):
+    """Cosine top 10. One normalised matrix-vector product scores every chunk."""
     question_vector = embed(question)
-    results = [
-        (cosine_similarity(question_vector, vector), chunk_index, chunk)
-        for chunk_index, (chunk, vector) in enumerate(zip(index["chunks"], index["embeddings"]))
+    chunks = index["chunks"]
+    embeddings = index["embeddings"]
+    count = min(len(chunks), len(embeddings))
+    if count == 0:
+        return []
+
+    query = np.asarray(question_vector, dtype=np.float64)
+    width = int(query.shape[0])
+    rows = []
+    for vector in embeddings[:count]:
+        if len(vector) != width:
+            raise ValueError(
+                "cosine_similarity requires two vectors of the same length, "
+                f"got {width} and {len(vector)}."
+            )
+        rows.append(vector)
+    matrix = np.asarray(rows, dtype=np.float64)
+    query_norm = float(np.linalg.norm(query))
+    row_norms = np.linalg.norm(matrix, axis=1)
+    for row_norm in row_norms:
+        row_norm = float(row_norm)
+        if query_norm == 0.0 or row_norm == 0.0:
+            raise ValueError("cosine_similarity cannot score a zero-length vector.")
+        if not np.isfinite(query_norm) or not np.isfinite(row_norm):
+            raise ValueError("cosine_similarity cannot score a non-finite vector.")
+
+    scores = (matrix / row_norms[:, np.newaxis]) @ (query / query_norm)
+    if not np.all(np.isfinite(scores)):
+        raise ValueError("cosine_similarity cannot score a non-finite vector.")
+
+    # Same order as a stable sort by score, highest first. Ties keep the
+    # earlier chunk.
+    order = np.lexsort((np.arange(count), -scores))[:CANDIDATE_COUNT]
+    return [
+        (float(scores[chunk_index]), int(chunk_index), chunks[chunk_index])
+        for chunk_index in order
     ]
-    return sorted(results, key=lambda item: item[0], reverse=True)[:CANDIDATE_COUNT]
 
 
 def rerank_candidates(question, candidates, reranker):
     pairs = [(question, chunk["text"]) for _score, _index, chunk in candidates]
     scores = [float(score) for score in reranker.predict(pairs, batch_size=8)]
-    if len(scores) != len(candidates) or any(not math.isfinite(score) for score in scores):
+    if len(scores) != len(candidates) or not np.all(np.isfinite(scores)):
         raise ValueError("The reranker returned invalid scores.")
     results = [
         (score, cosine_score, chunk_index, chunk)
