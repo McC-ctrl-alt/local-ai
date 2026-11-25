@@ -93,9 +93,18 @@ def decide_access(
     return allowed, rule
 
 
-def refusal_text(rule: dict[str, Any]) -> str:
-    """Format the access rule as the refusal line shown to the user."""
-    return f"Refused by {rule['id']}: {rule['text']}"
+def refusal_text(
+    role: str, department: dict[str, Any], rule: dict[str, Any]
+) -> str:
+    """Refusal built from the role, the department name, and the access rule.
+
+    The wording is fixed. The role, department name, rule id, and rule text
+    all come from policy.yaml and the question.
+    """
+    return (
+        f"Your role ({role}) can't access {department['name']} documents "
+        f"(rule {rule['id']}). {rule['text']}"
+    )
 
 
 def _route_keep(policy: dict[str, Any]) -> set[str]:
@@ -713,9 +722,13 @@ def trail_parts(
                 rule_bits.append(f"{scope['id']} {item['department']['folder']} only")
     departments = []
     for item in decisions:
-        bit = f"{item['department_id']} — {item['reason']}"
-        if not item["allowed"]:
-            bit += f" (refused by {item['rule']['id']})"
+        if item["allowed"]:
+            bit = f"{item['department_id']} — {item['reason']}"
+        else:
+            bit = (
+                f"{item['department']['name']} — {item['reason']} "
+                f"(blocked, rule {item['rule']['id']}: {item['rule']['text']})"
+            )
         departments.append(bit)
     cited = []
     for citation in citations:
@@ -773,7 +786,8 @@ def consult(policy: dict[str, Any], role: str, question: str) -> dict[str, Any]:
         if denied_rows:
             result["stage"] = "refused"
             result["answer"] = " ".join(
-                refusal_text(item["rule"]) for item in denied_rows
+                refusal_text(role, item["department"], item["rule"])
+                for item in denied_rows
             )
         else:
             result["stage"] = "no-route"
@@ -836,13 +850,14 @@ def consult(policy: dict[str, Any], role: str, question: str) -> dict[str, Any]:
 
 def _print_consult(result: dict[str, Any]) -> None:
     """Print consult() in the same shape policy_rag.py has always used."""
-    for item in result["denied_rows"]:
-        print(refusal_text(item["rule"]))
     stage = result["stage"]
     if stage == "refused":
+        print(f"Answer: {result['answer']}")
         print("No documents opened. Answer call skipped.")
         print_trail(result["role"], result["decisions"], [])
         return
+    for item in result["denied_rows"]:
+        print(refusal_text(result["role"], item["department"], item["rule"]))
     if stage == "no-route":
         print("Answer: I don't know.")
         print("No documents opened. Answer call skipped.")

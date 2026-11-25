@@ -13,6 +13,7 @@ import engine
 import policy_rag
 from policy_rag import (
     build_page_aware_chunks,
+    consult,
     decide_access,
     is_abstention,
     load_department_chunks,
@@ -23,6 +24,7 @@ from policy_rag import (
     route_question,
     run_question,
     split_access,
+    trail_parts,
     validate_citations,
 )
 from scripts.build_docs import DOCUMENTS, build_pdf
@@ -44,12 +46,23 @@ class PolicyTests(unittest.TestCase):
             self.assertTrue(any(rule["kind"] == "access" for rule in department["rules"]))
 
     def test_denied_role_is_refused_with_the_access_rule(self):
-        allowed, rule = decide_access(self.policy["departments"]["legal"], "tax_analyst")
+        department = self.policy["departments"]["legal"]
+        allowed, rule = decide_access(department, "tax_analyst")
         self.assertFalse(allowed)
-        text = refusal_text(rule)
-        self.assertIn("LEG-01", text)
-        self.assertEqual(text, f"Refused by {rule['id']}: {rule['text']}")
+        text = refusal_text("tax_analyst", department, rule)
+        self.assertEqual(
+            text,
+            f"Your role (tax_analyst) can't access {department['name']} documents "
+            f"(rule {rule['id']}). {rule['text']}",
+        )
         self.assertIn("counsel", rule["text"])
+        hr = self.policy["departments"]["hr"]
+        hr_rule = next(item for item in hr["rules"] if item["kind"] == "access")
+        hr_text = refusal_text("counsel", hr, hr_rule)
+        self.assertIn(hr["name"], hr_text)
+        self.assertIn(hr_rule["id"], hr_text)
+        self.assertIn(hr_rule["text"], hr_text)
+        self.assertNotIn("LEG-01", hr_text)
 
     def test_allowed_role_passes(self):
         allowed, rule = decide_access(self.policy["departments"]["hr"], "hr_partner")
@@ -88,7 +101,18 @@ class PolicyTests(unittest.TestCase):
         output = buffer.getvalue()
         self.assertIn("Role: tax_analyst", output)
         self.assertIn("LEG-01 refuse", output)
-        self.assertIn("Refused by LEG-01:", output)
+        legal = self.policy["departments"]["legal"]
+        legal_rule = next(item for item in legal["rules"] if item["kind"] == "access")
+        self.assertIn(
+            f"Your role (tax_analyst) can't access {legal['name']} documents "
+            f"(rule {legal_rule['id']}). {legal_rule['text']}",
+            output,
+        )
+        self.assertIn(
+            f"{legal['name']} — legal advice (blocked, rule {legal_rule['id']}: {legal_rule['text']})",
+            output,
+        )
+        self.assertNotIn("Answer: I don't know.", output)
         self.assertIn("Cited: none", output)
 
     def test_router_can_return_one_or_more_departments(self):
@@ -199,7 +223,17 @@ class PolicyTests(unittest.TestCase):
         sent_chunks = answer_call.call_args[0][2]
         self.assertEqual(list(sent_chunks), ["E1"])
         output = buffer.getvalue()
-        self.assertIn("Refused by TAX-01:", output)
+        tax = self.policy["departments"]["tax"]
+        tax_rule = next(item for item in tax["rules"] if item["kind"] == "access")
+        self.assertIn(
+            f"Your role (counsel) can't access {tax['name']} documents "
+            f"(rule {tax_rule['id']}). {tax_rule['text']}",
+            output,
+        )
+        self.assertIn(
+            f"(blocked, rule {tax_rule['id']}: {tax_rule['text']})",
+            output,
+        )
         self.assertIn("Not opened: docs/tax, docs/hr", output)
         self.assertIn("contract-review-standard.pdf p. 2", output)
         self.assertIn("cosine: chunk, page, score", output)
@@ -369,8 +403,69 @@ class PolicyTests(unittest.TestCase):
         post.assert_not_called()
         load_chunks.assert_not_called()
         output = buffer.getvalue()
-        self.assertIn("Refused by LEG-01:", output)
+        legal = self.policy["departments"]["legal"]
+        legal_rule = next(item for item in legal["rules"] if item["kind"] == "access")
+        self.assertIn(
+            f"Answer: Your role (tax_analyst) can't access {legal['name']} documents "
+            f"(rule {legal_rule['id']}). {legal_rule['text']}",
+            output,
+        )
+        self.assertIn(f"blocked, rule {legal_rule['id']}", output)
+        self.assertNotIn("Answer: I don't know.", output)
         self.assertIn("Cited: none", output)
+
+    def test_unmatched_question_stays_i_dont_know(self):
+        with (
+            patch("engine.chat_answer") as chat,
+            patch("engine.embed") as embed,
+            patch("policy_rag.load_department_chunks") as load_chunks,
+        ):
+            buffer = io.StringIO()
+            with redirect_stdout(buffer):
+                status = run_question(
+                    self.policy,
+                    "counsel",
+                    "How many years must the firm keep litigation hold notices?",
+                )
+        self.assertEqual(status, 0)
+        chat.assert_not_called()
+        embed.assert_not_called()
+        load_chunks.assert_not_called()
+        output = buffer.getvalue()
+        self.assertIn("Answer: I don't know.", output)
+        self.assertNotIn("can't access", output)
+        self.assertIn("Departments: ", output)
+
+    def test_blocked_hr_question_names_the_role_department_and_rule(self):
+        with (
+            patch("engine.chat_answer") as chat,
+            patch("engine.embed") as embed,
+            patch("policy_rag.get_reranker") as reranker,
+            patch("policy_rag.load_department_chunks") as load_chunks,
+        ):
+            result = consult(
+                self.policy,
+                "tax_analyst",
+                "How many weeks of paid parental leave does an employee with 12 months of continuous service receive?",
+            )
+        chat.assert_not_called()
+        embed.assert_not_called()
+        reranker.assert_not_called()
+        load_chunks.assert_not_called()
+        hr = self.policy["departments"]["hr"]
+        hr_rule = next(item for item in hr["rules"] if item["kind"] == "access")
+        self.assertEqual(result["stage"], "refused")
+        self.assertEqual(result["citations"], [])
+        self.assertEqual(
+            result["answer"],
+            f"Your role (tax_analyst) can't access {hr['name']} documents "
+            f"(rule {hr_rule['id']}). {hr_rule['text']}",
+        )
+        parts = trail_parts("tax_analyst", result["decisions"], [])
+        self.assertIn("HR-01 refuse", parts["rules"])
+        self.assertIn(hr["name"], parts["departments"][0])
+        self.assertIn(hr_rule["id"], parts["departments"][0])
+        self.assertIn(hr_rule["text"], parts["departments"][0])
 
     def test_policy_chunks_use_the_engine_text(self):
         reader = PdfReader(str(ROOT / "docs" / "tax" / "estimated-tax-calendar.pdf"))
