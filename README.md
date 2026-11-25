@@ -19,6 +19,14 @@ python3 demo.py --role tax_analyst --question "When is the second quarterly esti
 
 `demo.ask(question, role)` is the function a UI calls. Leave off `--role` or `--question` and the script prompts for a role, then keeps asking until the question line is blank. The role has to be one of the roles in `policy.yaml`.
 
+Start the local page with the venv active and Ollama running:
+
+```bash
+make demo
+```
+
+It binds to http://127.0.0.1:5000 on this machine only. The role dropdown is read from `policy.yaml`. Ask a question and the page shows the answer, file and page citations, and a "Why this answer" trail from `demo.ask()`. Startup sends one tiny Qwen call so the first question is not a cold load. The page waits up to 120 seconds and does not stream.
+
 ```bash
 python3 policy_rag.py
 ```

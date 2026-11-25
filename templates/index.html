@@ -1,0 +1,227 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Local AI demo</title>
+  <style>
+    :root {
+      color-scheme: light;
+      --ink: #1a1a1a;
+      --muted: #5c5c5c;
+      --line: #d6d6d6;
+      --bg: #f6f5f2;
+      --card: #ffffff;
+      --accent: #1f4b3a;
+      --danger: #8a1f1f;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font: 16px/1.5 -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
+      color: var(--ink);
+      background: var(--bg);
+    }
+    main {
+      max-width: 42rem;
+      margin: 0 auto;
+      padding: 2rem 1.25rem 4rem;
+    }
+    h1 { font-size: 1.5rem; margin: 0 0 0.25rem; }
+    .lede { color: var(--muted); margin: 0 0 1.5rem; }
+    form, .result {
+      background: var(--card);
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 1.25rem;
+    }
+    label { display: block; font-weight: 600; margin-bottom: 0.35rem; }
+    select, textarea, button {
+      font: inherit;
+      width: 100%;
+    }
+    select, textarea {
+      border: 1px solid var(--line);
+      border-radius: 6px;
+      padding: 0.55rem 0.65rem;
+      background: #fff;
+      margin-bottom: 1rem;
+    }
+    textarea { min-height: 6.5rem; resize: vertical; }
+    button {
+      background: var(--accent);
+      color: #fff;
+      border: 0;
+      border-radius: 6px;
+      padding: 0.65rem 0.9rem;
+      font-weight: 600;
+      cursor: pointer;
+    }
+    button:disabled { opacity: 0.65; cursor: wait; }
+    #status {
+      display: none;
+      margin: 1rem 0 0;
+      color: var(--muted);
+    }
+    #status.visible { display: flex; align-items: center; gap: 0.6rem; }
+    .spinner {
+      width: 1rem;
+      height: 1rem;
+      border: 2px solid var(--line);
+      border-top-color: var(--accent);
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .result { margin-top: 1.25rem; display: none; }
+    .result.visible { display: block; }
+    .result h2 { font-size: 1rem; margin: 0 0 0.5rem; }
+    .answer { white-space: pre-wrap; margin: 0 0 1rem; }
+    .citations { list-style: none; padding: 0; margin: 0 0 1rem; }
+    .citations li { margin: 0 0 0.25rem; }
+    .error { color: var(--danger); margin: 1rem 0 0; }
+    details {
+      border-top: 1px solid var(--line);
+      padding-top: 0.85rem;
+    }
+    summary { cursor: pointer; font-weight: 600; }
+    .trail dt { font-weight: 600; margin-top: 0.7rem; }
+    .trail dd { margin: 0.15rem 0 0; color: var(--muted); }
+  </style>
+</head>
+<body>
+  <main>
+    <h1>Local AI demo</h1>
+    <p class="lede">Runs only on this machine at 127.0.0.1. Roles come from policy.yaml. Nothing is sent off the Mac.</p>
+    <form id="ask-form">
+      <label for="role">Role</label>
+      <select id="role" name="role" required>
+        {% for role in roles %}
+        <option value="{{ role }}">{{ role }}</option>
+        {% endfor %}
+      </select>
+      <label for="question">Question</label>
+      <textarea id="question" name="question" required placeholder="Ask a question…"></textarea>
+      <button type="submit" id="ask-button">Ask</button>
+      <p id="status" role="status"><span class="spinner" aria-hidden="true"></span><span>Thinking… this can take up to a minute.</span></p>
+    </form>
+    <p id="error" class="error" hidden></p>
+    <section id="result" class="result" aria-live="polite">
+      <h2>Answer</h2>
+      <p id="answer" class="answer"></p>
+      <h2>Citations</h2>
+      <ul id="citations" class="citations"></ul>
+      <details id="trail" open>
+        <summary>Why this answer</summary>
+        <dl class="trail">
+          <dt>Role</dt>
+          <dd id="trail-role"></dd>
+          <dt>Rules applied</dt>
+          <dd id="trail-rules"></dd>
+          <dt>Departments</dt>
+          <dd id="trail-departments"></dd>
+          <dt>Sources</dt>
+          <dd id="trail-sources"></dd>
+        </dl>
+      </details>
+    </section>
+  </main>
+  <script>
+    const TIMEOUT_MS = {{ timeout_seconds }} * 1000;
+    const form = document.getElementById("ask-form");
+    const button = document.getElementById("ask-button");
+    const statusEl = document.getElementById("status");
+    const errorEl = document.getElementById("error");
+    const resultEl = document.getElementById("result");
+    const answerEl = document.getElementById("answer");
+    const citationsEl = document.getElementById("citations");
+    const trailRole = document.getElementById("trail-role");
+    const trailRules = document.getElementById("trail-rules");
+    const trailDepartments = document.getElementById("trail-departments");
+    const trailSources = document.getElementById("trail-sources");
+
+    function setThinking(on) {
+      button.disabled = on;
+      statusEl.classList.toggle("visible", on);
+    }
+
+    function showError(message) {
+      errorEl.hidden = false;
+      errorEl.textContent = message;
+      resultEl.classList.remove("visible");
+    }
+
+    function joinOrNone(items) {
+      return items && items.length ? items.join("; ") : "none";
+    }
+
+    function render(result) {
+      errorEl.hidden = true;
+      errorEl.textContent = "";
+      answerEl.textContent = result.answer || "";
+      citationsEl.replaceChildren();
+      const citations = result.citations || [];
+      const seen = new Set();
+      if (!citations.length) {
+        const li = document.createElement("li");
+        li.textContent = "none";
+        citationsEl.appendChild(li);
+      } else {
+        citations.forEach((citation) => {
+          if (!citation.file || citation.page == null) return;
+          const label = citation.file + ", page " + citation.page;
+          if (seen.has(label)) return;
+          seen.add(label);
+          const li = document.createElement("li");
+          li.textContent = label;
+          citationsEl.appendChild(li);
+        });
+        if (!citationsEl.childElementCount) {
+          const li = document.createElement("li");
+          li.textContent = "none";
+          citationsEl.appendChild(li);
+        }
+      }
+      const trail = result.trail || {};
+      trailRole.textContent = trail.role || "";
+      trailRules.textContent = joinOrNone(trail.rules);
+      trailDepartments.textContent = joinOrNone(trail.departments);
+      trailSources.textContent = joinOrNone(trail.sources);
+      resultEl.classList.add("visible");
+    }
+
+    form.addEventListener("submit", async (event) => {
+      event.preventDefault();
+      const role = document.getElementById("role").value;
+      const question = document.getElementById("question").value;
+      const controller = new AbortController();
+      const timer = setTimeout(() => controller.abort(), TIMEOUT_MS);
+      setThinking(true);
+      errorEl.hidden = true;
+      try {
+        const response = await fetch("/ask", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ role, question }),
+          signal: controller.signal,
+        });
+        const payload = await response.json().catch(() => ({}));
+        if (!response.ok) {
+          showError(payload.error || "The request failed.");
+          return;
+        }
+        render(payload);
+      } catch (err) {
+        if (err && err.name === "AbortError") {
+          showError("The model did not answer within 120 seconds. Check that Ollama is running, then try again.");
+        } else {
+          showError("Could not reach the local app.");
+        }
+      } finally {
+        clearTimeout(timer);
+        setThinking(false);
+      }
+    });
+  </script>
+</body>
+</html>
