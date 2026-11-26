@@ -6,8 +6,9 @@ embeddings.json
 policy_embeddings.json
 .curator_index/
 
-# Fictional demo PDFs are part of this example
-!docs/**/*.pdf
+# Northstar department PDFs are part of this example
+!knowledge_test/*.pdf
+!knowledge_test/**/*.pdf
 
 # Python
 __pycache__/
@@ -30,6 +31,5 @@ eval/summary.txt
 # Editor settings
 .vscode/
 
-!knowledge_test/*.pdf
 kyle_comments.diff
 curator-code-tutor/

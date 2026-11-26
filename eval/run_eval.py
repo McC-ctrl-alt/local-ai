@@ -251,13 +251,21 @@ def raw_page_text(pdf_path, page_number):
     return reader.pages[page_number - 1].extract_text() or ""
 
 
+def named_pdf(folder, name):
+    """Find a PDF by file name, including department subfolders."""
+    matches = [path for path in curator.list_pdfs(folder) if path.name == name]
+    if matches:
+        return matches[0]
+    return Path(folder) / name
+
+
 def write_dump(dump_dir, item, folder, outcome):
     dump_dir.mkdir(parents=True, exist_ok=True)
     lines = ["=== expected page ==="]
     source = item.get("file") or ""
     page = item.get("page")
     if source and page is not None:
-        pdf_path = Path(folder) / source
+        pdf_path = named_pdf(folder, source)
         lines.append(f"{source} page {page}")
         if pdf_path.is_file():
             lines.append(raw_page_text(pdf_path, int(page)))
@@ -450,7 +458,7 @@ def main(argv=None):
         "--folder",
         type=Path,
         default=DEFAULT_FOLDER,
-        help="PDF folder to score. Defaults to knowledge_test/.",
+        help="PDF folder to score, including department subfolders. Defaults to knowledge_test/.",
     )
     parser.add_argument("--questions", type=Path, default=ROOT / "eval" / "questions.yaml")
     parser.add_argument("--output", type=Path, default=ROOT / "eval" / "results.csv")

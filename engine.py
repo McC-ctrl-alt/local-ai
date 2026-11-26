@@ -1,9 +1,10 @@
 """Shared retrieval engine for curator.py and policy_rag.py.
 
 Parse, chunk, embed, index, cosine top 10, cross-encoder rerank, and the
--0.7 abstain cutoff live here. curator.py imports this module, so
-eval/run_eval.py and eval/compare.py stay where they are. Tuning a model,
-the candidate count, or the cutoff happens in this file.
+-0.7 abstain cutoff live here. PDFs in subfolders are included, and each
+chunk is tagged with that subfolder as its department. curator.py imports
+this module, so eval/run_eval.py and eval/compare.py stay on this path.
+Tuning a model, the candidate count, or the cutoff happens in this file.
 """
 
 import hashlib
@@ -259,14 +260,26 @@ def load_or_build_index(pdf_path):
 
 
 def list_pdfs(folder):
+    """Every PDF in this folder and its subfolders, in path order.
+
+    A department is a subfolder. Dropping a new PDF into one is enough for
+    the next load to pick it up. Nothing in this function names a department.
+    """
     folder = Path(folder)
     return sorted(
-        path for path in folder.iterdir() if path.is_file() and path.suffix.lower() == ".pdf"
+        path
+        for path in folder.rglob("*")
+        if path.is_file() and path.suffix.lower() == ".pdf"
     )
 
 
 def load_corpus(pdf_paths):
-    """One index over every PDF. Retrieval and chunking stay the same per file."""
+    """One index over every PDF. Retrieval and chunking stay the same per file.
+
+    ``department`` is the PDF's parent folder name, so a file in
+    ``knowledge_test/hr/`` is department ``hr``. ``load_or_build_index`` still
+    reuses the saved embeddings until the file's stat signature changes.
+    """
     chunks = []
     embeddings = []
     for pdf_path in pdf_paths:
@@ -275,6 +288,7 @@ def load_corpus(pdf_paths):
         for chunk in index["chunks"]:
             tagged = dict(chunk)
             tagged["source_file"] = pdf_path.name
+            tagged["department"] = pdf_path.parent.name
             chunks.append(tagged)
         embeddings.extend(index["embeddings"])
     return {"chunks": chunks, "embeddings": embeddings}
