@@ -295,12 +295,42 @@ def load_corpus(pdf_paths):
 
 
 def load_reranker():
+    """Load the ONNX cross-encoder on CPU.
+
+    The cached snapshot is resolved first, so a later run does not look the
+    model up by name. With no local copy, that same ONNX load is tried online
+    once. A failed ONNX load raises. PyTorch is not a fallback.
+    """
+    from huggingface_hub import snapshot_download
+    from huggingface_hub.errors import LocalEntryNotFoundError
     from sentence_transformers import CrossEncoder
 
+    def load_onnx(model_path):
+        return CrossEncoder(
+            model_path,
+            backend="onnx",
+            device="cpu",
+            model_kwargs={"file_name": "onnx/model.onnx"},
+        )
+
+    def fail(error):
+        raise RuntimeError(
+            f"Could not load the ONNX reranker '{RERANKER_MODEL}'. "
+            "Run once with internet to download the model."
+        ) from error
+
     try:
-        return CrossEncoder(RERANKER_MODEL, backend="onnx", device="cpu")
-    except Exception:
-        return CrossEncoder(RERANKER_MODEL, backend="torch", device="cpu")
+        local_folder = snapshot_download(RERANKER_MODEL, local_files_only=True)
+    except LocalEntryNotFoundError:
+        try:
+            return load_onnx(RERANKER_MODEL)
+        except Exception as error:
+            fail(error)
+
+    try:
+        return load_onnx(local_folder)
+    except Exception as error:
+        fail(error)
 
 
 def rank_candidates(question, index):

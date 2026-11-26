@@ -3,3 +3,4 @@ pypdf
 requests
 pyyaml
 sentence-transformers
+huggingface_hub
