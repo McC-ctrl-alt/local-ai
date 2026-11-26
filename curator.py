@@ -382,7 +382,7 @@ def main(argv=None):
     parser.add_argument(
         "--folder",
         type=Path,
-        help="Index every PDF in this folder. Defaults to knowledge_test/.",
+        help="Index every PDF in this folder and its subfolders. Defaults to knowledge_test/.",
     )
     parser.add_argument(
         "--pdf",

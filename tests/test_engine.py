@@ -1,18 +1,22 @@
 """Retrieval tests. Ollama and the cross-encoder are mocked, so no model is loaded."""
 
+import io
 import json
 import math
 import os
 import random
+import tempfile
 import unittest
+from contextlib import redirect_stdout
 from io import BytesIO
+from pathlib import Path
 from unittest.mock import patch
 
 from pypdf import PdfReader
 
 import curator
 import engine
-from scripts.build_docs import build_pdf
+from tests.build_pdf import build_pdf
 
 
 def python_cosine(vector_a, vector_b):
@@ -33,6 +37,8 @@ class ChunkTests(unittest.TestCase):
         self.assertIs(curator.rank_candidates, engine.rank_candidates)
         self.assertIs(curator.rerank_candidates, engine.rerank_candidates)
         self.assertIs(curator.embed, engine.embed)
+        self.assertIs(curator.list_pdfs, engine.list_pdfs)
+        self.assertIs(curator.load_corpus, engine.load_corpus)
         self.assertEqual(curator.RERANK_ABSTAIN_BELOW, -0.7)
         self.assertEqual(engine.RERANK_ABSTAIN_BELOW, -0.7)
 
@@ -366,6 +372,57 @@ class AnswerCallTests(unittest.TestCase):
             {"temperature": 0, "seed": 42, "num_ctx": 8192, "num_predict": 128},
         )
         self.assertEqual(payload["format"], {"type": "object"})
+
+
+class CorpusLayoutTests(unittest.TestCase):
+    def test_northstar_pdfs_live_in_department_folders(self):
+        folder = Path(__file__).resolve().parents[1] / "knowledge_test"
+        pdfs = engine.list_pdfs(folder)
+        by_name = {path.name: path.parent.name for path in pdfs}
+        self.assertEqual(
+            by_name,
+            {
+                "HR_Department.pdf": "hr",
+                "Legal_Department.pdf": "legal",
+                "Tax_Department.pdf": "tax",
+            },
+        )
+        self.assertTrue(all(path.parent != folder for path in pdfs))
+
+    def test_a_new_subfolder_pdf_is_tagged_and_a_changed_file_rebuilds(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            department = root / "hr"
+            department.mkdir()
+            path = department / "note.pdf"
+            path.write_bytes(build_pdf([["The stipend is 750 dollars."]]))
+            with (
+                redirect_stdout(io.StringIO()),
+                patch("engine.CACHE_DIR", root / "cache"),
+                patch("engine.embed", return_value=[1.0, 0.0]) as embed,
+            ):
+                found = engine.list_pdfs(root)
+                self.assertEqual(found, [path])
+                index = engine.load_corpus(found)
+                self.assertEqual(index["chunks"][0]["department"], "hr")
+                self.assertEqual(index["chunks"][0]["source_file"], "note.pdf")
+                self.assertIn("750", index["chunks"][0]["text"])
+                built = embed.call_count
+                self.assertGreater(built, 0)
+
+                again = engine.load_corpus(engine.list_pdfs(root))
+                self.assertEqual(embed.call_count, built)
+                self.assertEqual(again["chunks"][0]["department"], "hr")
+                self.assertIn("750", again["chunks"][0]["text"])
+
+                path.write_bytes(build_pdf([["The stipend is 800 dollars."]]))
+                later = path.stat().st_mtime_ns + 10_000_000_000
+                os.utime(path, ns=(later, later))
+                rebuilt = engine.load_corpus(engine.list_pdfs(root))
+                self.assertGreater(embed.call_count, built)
+                self.assertIn("800", rebuilt["chunks"][0]["text"])
+                self.assertNotIn("750", rebuilt["chunks"][0]["text"])
+                self.assertEqual(rebuilt["chunks"][0]["department"], "hr")
 
 
 if __name__ == "__main__":
