@@ -1,0 +1,835 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Curator</title>
+<script>
+(function () {
+  var theme = "dark";
+  try {
+    var saved = localStorage.getItem("curator-theme");
+    if (saved === "light" || saved === "dark") theme = saved;
+  } catch (error) {}
+  document.documentElement.setAttribute("data-theme", theme);
+})();
+</script>
+<style>
+  :root {
+    color-scheme: dark;
+    --bg: #1c1c1e;
+    --sidebar: #141416;
+    --surface: #242426;
+    --input: #1c1c1e;
+    --chip: #2c2c2e;
+    --text: #f5f5f7;
+    --muted: #a1a1a6;
+    --faint: #7c7c83;
+    --line: rgba(255, 255, 255, 0.1);
+    --accent: #3b6ef5;
+    --accent-ink: #ffffff;
+    --accent-soft: rgba(59, 110, 245, 0.16);
+    --accent-press: #2f5fe0;
+    --amber-bg: #3a2e16;
+    --amber-line: #d0892d;
+    --amber-text: #f6e3b0;
+    --amber-kicker: #f5c16c;
+    --danger: #ffb4b4;
+    --shadow: 0 16px 40px rgba(0, 0, 0, 0.28);
+    --sans: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  }
+
+  html[data-theme="light"] {
+    color-scheme: light;
+    --bg: #ffffff;
+    --sidebar: #f3f4f6;
+    --surface: #ffffff;
+    --input: #f7f7f8;
+    --chip: #f3f4f6;
+    --text: #1c1c1e;
+    --muted: #5c6370;
+    --faint: #6b7280;
+    --line: #e5e7eb;
+    --accent: #1f4d3a;
+    --accent-ink: #ffffff;
+    --accent-soft: rgba(31, 77, 58, 0.12);
+    --accent-press: #173c2d;
+    --amber-bg: #fff8eb;
+    --amber-line: #e0b15a;
+    --amber-text: #6b3e09;
+    --amber-kicker: #8a4b08;
+    --danger: #9f1239;
+    --shadow: 0 1px 2px rgba(28, 28, 30, 0.04), 0 12px 32px rgba(28, 28, 30, 0.06);
+  }
+
+  * { box-sizing: border-box; }
+
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--sans);
+    font-size: 15px;
+    line-height: 1.45;
+  }
+
+  button, textarea { font-family: inherit; }
+
+  .app {
+    display: grid;
+    grid-template-columns: 268px minmax(0, 1fr) 320px;
+    min-height: 100vh;
+  }
+
+  .sidebar, .trail {
+    background: var(--sidebar);
+    min-height: 100vh;
+  }
+
+  .sidebar {
+    display: flex;
+    flex-direction: column;
+    gap: 22px;
+    padding: 22px 16px 16px;
+    border-right: 1px solid var(--line);
+  }
+
+  .brand {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 0 6px;
+  }
+
+  .mark {
+    width: 36px;
+    height: 36px;
+    border-radius: 10px;
+    background: var(--accent);
+    color: var(--accent-ink);
+    display: grid;
+    place-items: center;
+    font-weight: 700;
+    letter-spacing: -0.04em;
+    flex: 0 0 auto;
+  }
+
+  .brand-name {
+    font-size: 16px;
+    font-weight: 700;
+    letter-spacing: -0.02em;
+  }
+
+  .brand-sub {
+    color: var(--muted);
+    font-size: 12px;
+    margin-top: 1px;
+  }
+
+  .badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    align-self: flex-start;
+    margin-left: 6px;
+    padding: 6px 10px;
+    border-radius: 999px;
+    border: 1px solid var(--line);
+    background: var(--chip);
+    color: var(--muted);
+    font-size: 12px;
+    font-weight: 600;
+  }
+
+  .badge::before {
+    content: "";
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    background: var(--accent);
+    flex: 0 0 auto;
+  }
+
+  .side-label, .kicker, .trail dt {
+    margin: 0;
+    color: var(--muted);
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+  }
+
+  .side-label { padding: 0 8px; }
+
+  .roles {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+
+  .role {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    width: 100%;
+    text-align: left;
+    padding: 10px 10px;
+    border: 0;
+    border-radius: 10px;
+    background: transparent;
+    color: var(--text);
+    cursor: pointer;
+  }
+
+  .role:hover { background: var(--accent-soft); }
+
+  .role[aria-checked="true"] {
+    background: var(--accent-soft);
+    box-shadow: inset 2px 0 0 var(--accent);
+  }
+
+  .role:focus-visible, .chip:focus-visible, .ask:focus-visible, .theme button:focus-visible, textarea:focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 2px;
+  }
+
+  .radio {
+    width: 14px;
+    height: 14px;
+    border-radius: 50%;
+    border: 2px solid var(--faint);
+    flex: 0 0 auto;
+    display: grid;
+    place-items: center;
+  }
+
+  .role[aria-checked="true"] .radio { border-color: var(--accent); }
+
+  .role[aria-checked="true"] .radio::after {
+    content: "";
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: var(--accent);
+  }
+
+  .role-label { display: block; font-weight: 650; font-size: 14px; }
+  .role-id { display: block; color: var(--faint); font-size: 12px; margin-top: 1px; }
+
+  .sidebar-spacer { flex: 1; }
+
+  .theme {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 4px;
+    padding: 4px;
+    border-radius: 12px;
+    border: 1px solid var(--line);
+    background: var(--chip);
+  }
+
+  .theme button {
+    border: 0;
+    border-radius: 8px;
+    background: transparent;
+    color: var(--muted);
+    padding: 8px 10px;
+    font-size: 13px;
+    font-weight: 700;
+    cursor: pointer;
+  }
+
+  .theme button[aria-pressed="true"] {
+    background: var(--accent);
+    color: var(--accent-ink);
+  }
+
+  .main {
+    padding: 40px 40px 56px;
+    min-width: 0;
+  }
+
+  .hello {
+    margin: 0;
+    font-size: 34px;
+    line-height: 1.15;
+    letter-spacing: -0.03em;
+    font-weight: 600;
+  }
+
+  .hello .name { font-weight: 700; }
+
+  .lede {
+    margin: 10px 0 0;
+    max-width: 42rem;
+    color: var(--muted);
+    font-size: 15px;
+  }
+
+  .ask-box {
+    margin-top: 28px;
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: 16px;
+    box-shadow: var(--shadow);
+    padding: 8px;
+  }
+
+  textarea {
+    display: block;
+    width: 100%;
+    min-height: 140px;
+    resize: vertical;
+    border: 0;
+    border-radius: 12px;
+    background: var(--input);
+    color: var(--text);
+    font-size: 18px;
+    line-height: 1.45;
+    padding: 16px 16px 10px;
+  }
+
+  textarea::placeholder { color: var(--faint); }
+
+  .ask-bar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 10px 6px 6px;
+    flex-wrap: wrap;
+  }
+
+  .chips { display: flex; flex-wrap: wrap; gap: 8px; }
+
+  .chip, .ask {
+    border-radius: 999px;
+    cursor: pointer;
+  }
+
+  .chip {
+    border: 1px solid var(--line);
+    background: var(--chip);
+    color: var(--text);
+    padding: 7px 12px;
+    font-size: 13px;
+    font-weight: 600;
+  }
+
+  .chip:hover { border-color: var(--accent); color: var(--accent); }
+
+  .ask {
+    border: 0;
+    background: var(--accent);
+    color: var(--accent-ink);
+    padding: 11px 20px;
+    font-size: 15px;
+    font-weight: 700;
+  }
+
+  .ask:hover { background: var(--accent-press); }
+  .ask:disabled, .chip:disabled { opacity: 0.55; cursor: progress; }
+
+  .result { margin-top: 22px; }
+  .result:empty { display: none; }
+
+  .card {
+    border-radius: 16px;
+    border: 1px solid var(--line);
+    background: var(--surface);
+    padding: 20px 22px 18px;
+  }
+
+  .answer-text {
+    margin: 10px 0 0;
+    font-size: 17px;
+    line-height: 1.6;
+    white-space: pre-wrap;
+  }
+
+  .cites {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-top: 16px;
+  }
+
+  .cite {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 5px 6px 5px 12px;
+    border-radius: 999px;
+    background: var(--accent-soft);
+    font-size: 13px;
+    font-weight: 600;
+  }
+
+  .cite-page {
+    background: var(--accent);
+    color: var(--accent-ink);
+    border-radius: 999px;
+    padding: 3px 8px;
+    font-size: 12px;
+  }
+
+  .refusal {
+    background: var(--amber-bg);
+    border-color: var(--amber-line);
+    color: var(--amber-text);
+  }
+
+  .refusal .kicker { color: var(--amber-kicker); }
+
+  .loading { color: var(--muted); font-weight: 650; }
+
+  @media (prefers-reduced-motion: no-preference) {
+    .loading { animation: pulse 1.4s ease-in-out infinite; }
+  }
+
+  @keyframes pulse {
+    50% { opacity: 0.55; }
+  }
+
+  .error {
+    color: var(--danger);
+    border-color: var(--danger);
+  }
+
+  .trail {
+    padding: 36px 22px;
+    border-left: 1px solid var(--line);
+  }
+
+  .trail h2 {
+    margin: 0;
+    font-size: 16px;
+    letter-spacing: -0.02em;
+  }
+
+  .trail-note {
+    margin: 8px 0 0;
+    color: var(--muted);
+    font-size: 13px;
+  }
+
+  .trail dl { margin: 8px 0 0; }
+  .trail dt { margin-top: 18px; }
+  .trail dd {
+    margin: 6px 0 0;
+    font-size: 14px;
+    line-height: 1.45;
+  }
+
+  .rule-id { font-weight: 750; }
+  .rule-text { display: block; margin-top: 4px; color: var(--muted); }
+
+  .pills { display: flex; flex-wrap: wrap; gap: 6px; }
+  .pill {
+    border: 1px solid var(--line);
+    background: var(--chip);
+    border-radius: 999px;
+    padding: 3px 8px;
+    font-size: 12px;
+    font-weight: 650;
+  }
+
+  .source {
+    display: block;
+    padding: 4px 0;
+  }
+
+  .sr-only {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    border: 0;
+  }
+
+  @media (max-width: 980px) {
+    .app { grid-template-columns: 1fr; }
+    .sidebar, .trail { min-height: 0; border: 0; }
+    .sidebar { border-bottom: 1px solid var(--line); }
+    .trail { border-top: 1px solid var(--line); }
+    .main { padding: 28px 20px 40px; }
+    .hello { font-size: 28px; }
+  }
+</style>
+</head>
+<body>
+  <div class="app">
+    <aside class="sidebar">
+      <div class="brand">
+        <div class="mark" aria-hidden="true">C</div>
+        <div>
+          <div class="brand-name">Curator</div>
+          <div class="brand-sub">Northstar Advisory Group</div>
+        </div>
+      </div>
+      <div class="badge">Running locally · no internet</div>
+      <div>
+        <p class="side-label" id="viewing-label">Viewing as</p>
+        <div class="roles" role="radiogroup" aria-labelledby="viewing-label" id="roles"></div>
+      </div>
+      <div class="sidebar-spacer"></div>
+      <div class="theme" role="group" aria-label="Colour theme">
+        <button type="button" id="theme-dark" data-theme-choice="dark">Dark</button>
+        <button type="button" id="theme-light" data-theme-choice="light">Light</button>
+      </div>
+    </aside>
+
+    <main class="main">
+      <h1 class="hello" id="greeting"></h1>
+      <p class="lede">Ask a policy question. Curator searches HR, Legal, and Tax, then answers from the departments this role may read.</p>
+      <form id="ask-form" class="ask-box">
+        <label class="sr-only" for="question">Policy question</label>
+        <textarea id="question" rows="4" placeholder="Ask a Northstar policy question"></textarea>
+        <div class="ask-bar">
+          <div class="chips" id="chips"></div>
+          <button class="ask" id="ask-button" type="submit">Ask</button>
+        </div>
+      </form>
+      <div class="result" id="result" aria-live="polite"></div>
+    </main>
+
+    <aside class="trail">
+      <h2>Why this answer</h2>
+      <p class="trail-note" id="trail-note">The role, the rule, and the pages behind the answer.</p>
+      <dl>
+        <dt>Role</dt>
+        <dd id="trail-role"></dd>
+        <dt>Rule</dt>
+        <dd id="trail-rule"></dd>
+        <dt>Departments</dt>
+        <dd id="trail-departments"></dd>
+        <dt>Sources</dt>
+        <dd id="trail-sources"></dd>
+      </dl>
+    </aside>
+  </div>
+<script>
+(function () {
+  const USER_NAME = "Liam";
+  const ROLES = [
+    { id: "hr_partner", label: "HR Partner" },
+    { id: "legal_counsel", label: "Legal Counsel" },
+    { id: "tax_analyst", label: "Tax Analyst" },
+    { id: "managing_partner", label: "Managing Partner" },
+  ];
+  const EXAMPLES = [
+    {
+      label: "Week 1 onboarding",
+      question: "What should a manager confirm during Week 1?",
+    },
+    {
+      label: "vacation entitlement",
+      question: "What is the standard vacation entitlement for a full year?",
+    },
+    {
+      label: "Ontario HST",
+      question: "What HST rate applies to taxable services supplied in Ontario?",
+    },
+  ];
+  // Words that begin a real sentence. Anything else, when it sits alone in
+  // front of a capitalised sentence, is a heading leaked from a table cell.
+  const SENTENCE_STARTS = new Set([
+    "A", "An", "The", "This", "That", "These", "Those",
+    "I", "We", "It", "They", "He", "She",
+    "In", "On", "At", "By", "To", "For", "Of", "If", "As", "Or", "And",
+    "When", "Where", "What", "Which", "Who", "How", "Why",
+    "After", "Before", "During", "Once", "Until", "While", "Within",
+    "Northstar", "Ontario", "Eligible", "Standard", "Vacation",
+    "Corporate", "Tax", "Legal", "Employees", "Employee",
+  ]);
+
+  const greeting = document.getElementById("greeting");
+  const rolesEl = document.getElementById("roles");
+  const chipsEl = document.getElementById("chips");
+  const form = document.getElementById("ask-form");
+  const questionEl = document.getElementById("question");
+  const askButton = document.getElementById("ask-button");
+  const resultEl = document.getElementById("result");
+  const trailRole = document.getElementById("trail-role");
+  const trailRule = document.getElementById("trail-rule");
+  const trailDepartments = document.getElementById("trail-departments");
+  const trailSources = document.getElementById("trail-sources");
+
+  let role = "hr_partner";
+  let busy = false;
+
+  // Display only. A copied table row can start with a stray heading word
+  // such as "Manager" before the sentence. The JSON answer is unchanged.
+  function displayAnswer(answer) {
+    const text = String(answer ?? "").replace(/^\s+/, "");
+    const lined = text.match(/^([A-Z][A-Za-z]*)\n+([\s\S]+)$/);
+    if (lined && !SENTENCE_STARTS.has(lined[1]) && lined[2].trim()) {
+      return lined[2].replace(/^\s+/, "");
+    }
+    const inline = text.match(/^([A-Z][a-z]+)\s+([A-Z][\s\S]*)$/);
+    if (inline && !SENTENCE_STARTS.has(inline[1])) {
+      return inline[2];
+    }
+    return text;
+  }
+
+  function timeOfDay(date) {
+    const hour = date.getHours();
+    if (hour >= 5 && hour < 12) return "morning";
+    if (hour >= 12 && hour < 17) return "afternoon";
+    return "evening";
+  }
+
+  function renderGreeting() {
+    greeting.textContent = "";
+    greeting.append("Good " + timeOfDay(new Date()) + ", ");
+    const name = document.createElement("span");
+    name.className = "name";
+    name.textContent = USER_NAME;
+    greeting.append(name);
+  }
+
+  function currentTheme() {
+    return document.documentElement.getAttribute("data-theme") === "light" ? "light" : "dark";
+  }
+
+  function applyTheme(theme) {
+    document.documentElement.setAttribute("data-theme", theme);
+    try {
+      localStorage.setItem("curator-theme", theme);
+    } catch (error) {}
+    document.getElementById("theme-dark").setAttribute("aria-pressed", theme === "dark" ? "true" : "false");
+    document.getElementById("theme-light").setAttribute("aria-pressed", theme === "light" ? "true" : "false");
+  }
+
+  function renderRoles() {
+    rolesEl.textContent = "";
+    ROLES.forEach(function (item) {
+      const button = document.createElement("button");
+      button.type = "button";
+      button.className = "role";
+      button.setAttribute("role", "radio");
+      button.setAttribute("aria-checked", item.id === role ? "true" : "false");
+      button.dataset.role = item.id;
+      const radio = document.createElement("span");
+      radio.className = "radio";
+      radio.setAttribute("aria-hidden", "true");
+      const copy = document.createElement("span");
+      const label = document.createElement("span");
+      label.className = "role-label";
+      label.textContent = item.label;
+      const id = document.createElement("span");
+      id.className = "role-id";
+      id.textContent = item.id;
+      copy.append(label, id);
+      button.append(radio, copy);
+      button.addEventListener("click", function () {
+        if (item.id === role) return;
+        role = item.id;
+        renderRoles();
+        clearAnswer();
+        renderTrail(null);
+      });
+      rolesEl.append(button);
+    });
+  }
+
+  function renderChips() {
+    EXAMPLES.forEach(function (example) {
+      const button = document.createElement("button");
+      button.type = "button";
+      button.className = "chip";
+      button.textContent = example.label;
+      button.addEventListener("click", function () {
+        questionEl.value = example.question;
+        ask(example.question);
+      });
+      chipsEl.append(button);
+    });
+  }
+
+  function clearAnswer() {
+    resultEl.textContent = "";
+  }
+
+  function fill(node, text) {
+    node.textContent = text;
+  }
+
+  function renderTrail(trail) {
+    const data = trail || { role: role, rule: null, departments: [], sources: [] };
+    fill(trailRole, data.role || role);
+
+    trailRule.textContent = "";
+    if (data.rule && data.rule.id) {
+      const id = document.createElement("span");
+      id.className = "rule-id";
+      id.textContent = data.rule.id;
+      trailRule.append(id);
+      if (data.rule.text) {
+        const text = document.createElement("span");
+        text.className = "rule-text";
+        text.textContent = data.rule.text;
+        trailRule.append(text);
+      }
+    } else {
+      trailRule.textContent = "—";
+    }
+
+    trailDepartments.textContent = "";
+    const departments = data.departments || [];
+    if (!departments.length) {
+      trailDepartments.textContent = "—";
+    } else {
+      const pills = document.createElement("div");
+      pills.className = "pills";
+      departments.forEach(function (department) {
+        const pill = document.createElement("span");
+        pill.className = "pill";
+        pill.textContent = department;
+        pills.append(pill);
+      });
+      trailDepartments.append(pills);
+    }
+
+    trailSources.textContent = "";
+    const sources = data.sources || [];
+    if (!sources.length) {
+      trailSources.textContent = "—";
+    } else {
+      sources.forEach(function (source) {
+        const line = document.createElement("span");
+        line.className = "source";
+        line.textContent = source;
+        trailSources.append(line);
+      });
+    }
+  }
+
+  function citationRow(citations) {
+    const seen = new Set();
+    const row = document.createElement("div");
+    row.className = "cites";
+    (citations || []).forEach(function (citation) {
+      const file = citation.source_file || "unknown";
+      const page = citation.page_number;
+      const key = file + "\n" + page;
+      if (seen.has(key)) return;
+      seen.add(key);
+      const chip = document.createElement("span");
+      chip.className = "cite";
+      const fileEl = document.createElement("span");
+      fileEl.className = "cite-file";
+      fileEl.textContent = file;
+      const pageEl = document.createElement("span");
+      pageEl.className = "cite-page";
+      pageEl.textContent = "p. " + page;
+      chip.append(fileEl, pageEl);
+      row.append(chip);
+    });
+    return row.childNodes.length ? row : null;
+  }
+
+  function renderLoading() {
+    resultEl.textContent = "";
+    const card = document.createElement("div");
+    card.className = "card loading";
+    card.textContent = "Searching 3 departments…";
+    resultEl.append(card);
+  }
+
+  function renderError(message) {
+    resultEl.textContent = "";
+    const card = document.createElement("article");
+    card.className = "card error";
+    card.textContent = message || "The question could not be answered.";
+    resultEl.append(card);
+  }
+
+  function renderResult(data) {
+    const raw = typeof data.answer === "string" ? data.answer : "";
+    const answer = displayAnswer(raw);
+    const trail = data.trail || {};
+    resultEl.textContent = "";
+    const card = document.createElement("article");
+    const kicker = document.createElement("p");
+    kicker.className = "kicker";
+    const body = document.createElement("p");
+    body.className = "answer-text";
+    body.textContent = answer;
+    if (data.stage === "refused") {
+      card.className = "card refusal";
+      const rule = trail.rule || {};
+      kicker.textContent = rule.id ? "Rule " + rule.id : "Refused";
+      card.append(kicker, body);
+    } else {
+      card.className = "card";
+      kicker.textContent = "Answer";
+      card.append(kicker, body);
+      const cites = citationRow(data.citations);
+      if (cites) card.append(cites);
+    }
+    resultEl.append(card);
+    renderTrail(trail);
+  }
+
+  async function ask(text) {
+    const question = String(text || "").trim();
+    if (!question || busy) return;
+    busy = true;
+    askButton.disabled = true;
+    chipsEl.querySelectorAll("button").forEach(function (button) {
+      button.disabled = true;
+    });
+    renderLoading();
+    try {
+      const response = await fetch("/ask", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ question: question, role: role }),
+      });
+      let data = {};
+      try {
+        data = await response.json();
+      } catch (error) {
+        data = {};
+      }
+      if (!response.ok) {
+        renderError(data.error || "The question could not be answered.");
+        return;
+      }
+      renderResult(data);
+    } catch (error) {
+      renderError("Curator could not be reached.");
+    } finally {
+      busy = false;
+      askButton.disabled = false;
+      chipsEl.querySelectorAll("button").forEach(function (button) {
+        button.disabled = false;
+      });
+    }
+  }
+
+  document.querySelectorAll("[data-theme-choice]").forEach(function (button) {
+    button.addEventListener("click", function () {
+      applyTheme(button.getAttribute("data-theme-choice"));
+    });
+  });
+
+  form.addEventListener("submit", function (event) {
+    event.preventDefault();
+    ask(questionEl.value);
+  });
+
+  applyTheme(currentTheme());
+  renderGreeting();
+  renderRoles();
+  renderChips();
+  renderTrail(null);
+})();
+</script>
+</body>
+</html>
