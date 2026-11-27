@@ -229,29 +229,109 @@ class RankingTests(unittest.TestCase):
         self.assertIs(type(reranked[0][0]), float)
         self.assertEqual(reranked[0][0], 1.25)
 
-    def test_reranker_loads_the_cross_encoder_on_cpu(self):
+    def test_reranker_loads_onnx_from_the_local_folder(self):
         calls = []
+        sentinel = object()
+        local_folder = "/cache/models/cross-encoder"
 
-        def factory(model, backend, device):
-            calls.append((model, backend, device))
-            if backend == "onnx":
-                raise RuntimeError("onnx extra is not installed")
-            return object()
+        def factory(model, *, backend, device, model_kwargs):
+            calls.append((model, backend, device, model_kwargs))
+            return sentinel
 
-        with patch("sentence_transformers.CrossEncoder", side_effect=factory):
+        with (
+            patch(
+                "huggingface_hub.snapshot_download",
+                return_value=local_folder,
+            ) as download,
+            patch("sentence_transformers.CrossEncoder", side_effect=factory),
+        ):
             produced = engine.load_reranker()
 
-        self.assertIsNotNone(produced)
+        self.assertIs(produced, sentinel)
+        download.assert_called_once_with(engine.RERANKER_MODEL, local_files_only=True)
         self.assertEqual(
             calls,
             [
-                (engine.RERANKER_MODEL, "onnx", "cpu"),
-                (engine.RERANKER_MODEL, "torch", "cpu"),
+                (
+                    local_folder,
+                    "onnx",
+                    "cpu",
+                    {"file_name": "onnx/model.onnx"},
+                )
             ],
         )
         self.assertEqual(engine.RERANKER_MODEL, os.environ.get(
             "RAG_RERANKER_MODEL", "cross-encoder/ms-marco-MiniLM-L6-v2"
         ))
+
+    def test_reranker_raises_a_clear_error_when_the_local_model_is_missing(self):
+        from huggingface_hub.errors import LocalEntryNotFoundError
+
+        calls = []
+
+        def factory(model, *, backend, device, model_kwargs):
+            calls.append((model, backend, device, model_kwargs))
+            raise OSError("offline")
+
+        with (
+            patch(
+                "huggingface_hub.snapshot_download",
+                side_effect=LocalEntryNotFoundError("no local snapshot"),
+            ) as download,
+            patch("sentence_transformers.CrossEncoder", side_effect=factory),
+        ):
+            with self.assertRaises(RuntimeError) as caught:
+                engine.load_reranker()
+
+        message = str(caught.exception)
+        self.assertIn("Run once with internet to download the model", message)
+        self.assertIn(engine.RERANKER_MODEL, message)
+        self.assertIsInstance(caught.exception.__cause__, OSError)
+        download.assert_called_once_with(engine.RERANKER_MODEL, local_files_only=True)
+        self.assertEqual(
+            calls,
+            [
+                (
+                    engine.RERANKER_MODEL,
+                    "onnx",
+                    "cpu",
+                    {"file_name": "onnx/model.onnx"},
+                )
+            ],
+        )
+
+    def test_reranker_raises_when_the_local_onnx_file_cannot_load(self):
+        calls = []
+        local_folder = "/cache/models/cross-encoder"
+
+        def factory(model, *, backend, device, model_kwargs):
+            calls.append((model, backend, device, model_kwargs))
+            raise RuntimeError("onnx file is missing")
+
+        with (
+            patch(
+                "huggingface_hub.snapshot_download",
+                return_value=local_folder,
+            ) as download,
+            patch("sentence_transformers.CrossEncoder", side_effect=factory),
+        ):
+            with self.assertRaises(RuntimeError) as caught:
+                engine.load_reranker()
+
+        self.assertIn("Run once with internet to download the model", str(caught.exception))
+        self.assertIsInstance(caught.exception.__cause__, RuntimeError)
+        download.assert_called_once_with(engine.RERANKER_MODEL, local_files_only=True)
+        self.assertEqual(
+            calls,
+            [
+                (
+                    local_folder,
+                    "onnx",
+                    "cpu",
+                    {"file_name": "onnx/model.onnx"},
+                )
+            ],
+        )
 
 
 class CosineTests(unittest.TestCase):

@@ -139,7 +139,7 @@ def outcome(answer, citations, trail, stage) -> dict[str, Any]:
 
 
 def get_reranker():
-    """Load the engine's CPU cross-encoder once."""
+    """Load the engine's CPU ONNX cross-encoder once."""
     global _RERANKER
     if _RERANKER is not None:
         return _RERANKER
@@ -149,10 +149,6 @@ def get_reranker():
         raise SystemExit(
             "sentence-transformers is not installed. "
             "Run: pip install -r requirements.txt"
-        ) from exc
-    except Exception as exc:
-        raise RuntimeError(
-            f"Reranker model '{engine.RERANKER_MODEL}' is not available locally."
         ) from exc
     return _RERANKER
 
